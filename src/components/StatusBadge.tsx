@@ -22,10 +22,10 @@ export function StatusBadge({ mode, lesson, onClick, active = false }: Props) {
     text = "📊 Poll Running";
     tone = "border-amber-500/50 bg-amber-500/10 text-amber-200";
   } else if (lesson) {
-    text = `🔴 Live: ${lesson.lessonNumber} — ${lesson.title}`;
+    text = `🔴 ${lesson.lessonNumber} — ${lesson.title}`;
     tone = "border-red-500/50 bg-red-500/10 text-red-100";
   } else {
-    text = "🔴 Live: Blank Board";
+    text = "🔴 Blank Board";
     tone = "border-red-500/50 bg-red-500/10 text-red-100";
   }
   return (
