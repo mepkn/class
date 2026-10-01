@@ -76,12 +76,21 @@ interface Props {
   broadcastable: boolean;
   autoSync: boolean;
   onAutoSyncChange: (on: boolean) => void;
+  /** Called with a description of work that would be lost if the editor closed, or null. */
+  onUnsavedChange?: (description: string | null) => void;
 }
 
 /**
  * Mount with a `key` per target so switching targets resets local state.
  */
-export function LiveEditor({ target, initialValue, broadcastable, autoSync, onAutoSyncChange }: Props) {
+export function LiveEditor({
+  target,
+  initialValue,
+  broadcastable,
+  autoSync,
+  onAutoSyncChange,
+  onUnsavedChange,
+}: Props) {
   const [value, setValue] = useState(initialValue);
   const [lastSent, setLastSent] = useState(initialValue);
   const [inFlight, setInFlight] = useState(0);
@@ -127,6 +136,19 @@ export function LiveEditor({ target, initialValue, broadcastable, autoSync, onAu
 
   const unsent = broadcastable && value !== lastSent;
   const draftDirty = target.kind === "lesson" && value !== target.lesson.content;
+
+  // What would be lost if this editor closed now. (Edits that already went live on the
+  // live lesson are covered by the dashboard's "live edits not saved" check on push.)
+  const unsavedDescription =
+    broadcastable && !autoSync && unsent
+      ? "unsent changes on the live board (Auto-Sync is paused)"
+      : !broadcastable && draftDirty && target.kind === "lesson"
+        ? `unsaved changes in ${target.lesson.lessonNumber} — ${target.lesson.title}`
+        : null;
+  useEffect(() => {
+    onUnsavedChange?.(unsavedDescription);
+  }, [unsavedDescription, onUnsavedChange]);
+  useEffect(() => () => onUnsavedChange?.(null), [onUnsavedChange]);
 
   const saveDraft = async () => {
     if (target.kind !== "lesson") return;

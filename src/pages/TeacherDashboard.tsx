@@ -1,4 +1,4 @@
-import { useCallback, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { LogOut, MonitorPlay, PanelLeft, PanelRight } from "lucide-react";
@@ -46,6 +46,42 @@ export function TeacherDashboard({ email }: { email: string | null }) {
   const editingLesson =
     targetRef.kind === "lesson" ? (lessons?.find((l) => l._id === targetRef.lessonId) ?? null) : null;
 
+  // ---- Unsaved-changes protection -------------------------------------------
+  // The editor reports unsaved work here; anything that would discard it asks first.
+  const unsavedRef = useRef<string | null>(null);
+  const onUnsavedChange = useCallback((d: string | null) => {
+    unsavedRef.current = d;
+  }, []);
+
+  /** Live edits students can see that were never saved into the live lesson's draft. */
+  const unsavedLiveEdits =
+    session?.mode === "lesson" && liveLesson && session.currentContent !== liveLesson.content
+      ? `live edits to ${liveLesson.lessonNumber} — ${liveLesson.title} that aren't saved to its draft`
+      : null;
+
+  /** Native confirm listing what would be lost; true if nothing is at risk or the teacher agrees. */
+  const confirmDiscard = (...reasons: (string | null)[]) => {
+    const lost = reasons.filter((r): r is string => !!r);
+    if (lost.length === 0) return true;
+    return window.confirm(`You have ${lost.join(" and ")}.\n\nDiscard and continue?`);
+  };
+  const editorChanges = () => unsavedRef.current;
+
+  /** Switch what the editor shows, asking first if that would drop unsaved work. */
+  const goTo = (next: TargetRef) => {
+    const same =
+      next.kind === "lesson" && targetRef.kind === "lesson" && next.lessonId === targetRef.lessonId;
+    if (same || confirmDiscard(editorChanges())) setTargetRef(next);
+  };
+
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (unsavedRef.current) e.preventDefault();
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, []);
+
   const act = async (fn: () => Promise<unknown>) => {
     setActionError(null);
     try {
@@ -55,17 +91,22 @@ export function TeacherDashboard({ email }: { email: string | null }) {
     }
   };
 
-  const onPush = (lesson: Doc<"lessons">) =>
-    act(async () => {
+  const onPush = (lesson: Doc<"lessons">) => {
+    const leavingEditor = !(targetRef.kind === "lesson" && targetRef.lessonId === lesson._id);
+    if (!confirmDiscard(leavingEditor ? editorChanges() : null, unsavedLiveEdits)) return;
+    return act(async () => {
       await pushLesson({ lessonId: lesson._id });
       setTargetRef({ kind: "lesson", lessonId: lesson._id });
     });
+  };
 
-  const onBlank = () =>
-    act(async () => {
+  const onBlank = () => {
+    if (!confirmDiscard(editorChanges(), unsavedLiveEdits)) return;
+    return act(async () => {
       await pushBlankBoard();
       setTargetRef((t) => ({ kind: "live", nonce: (t.kind === "live" ? t.nonce : 0) + 1 }));
     });
+  };
 
   // Build the editor target. The editor is keyed so it remounts per target.
   let editor: { target: EditorTarget; key: string; initial: string; broadcastable: boolean } | null =
@@ -109,10 +150,11 @@ export function TeacherDashboard({ email }: { email: string | null }) {
         // Only "live" while students actually see it; after Reset or during a poll it can be pushed again.
         liveLessonId={session?.mode === "lesson" ? liveLessonId : null}
         editingLessonId={editingLesson?._id ?? null}
-        onOpen={(l) => setTargetRef({ kind: "lesson", lessonId: l._id })}
+        onOpen={(l) => goTo({ kind: "lesson", lessonId: l._id })}
         onPush={onPush}
         onBlank={onBlank}
         onCreated={(lessonId) => setTargetRef({ kind: "lesson", lessonId })}
+        confirmLeaveEditor={() => confirmDiscard(editorChanges())}
       />
       <WithSidebar>
         {(left) => (
@@ -150,8 +192,8 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                     onClick={() =>
                       // Live lesson → select it in the sidebar; blank board/poll → scratchpad.
                       session?.mode === "lesson" && liveLesson
-                        ? setTargetRef({ kind: "lesson", lessonId: liveLesson._id })
-                        : setTargetRef({ kind: "live", nonce: Date.now() })
+                        ? goTo({ kind: "lesson", lessonId: liveLesson._id })
+                        : goTo({ kind: "live", nonce: Date.now() })
                     }
                   />
                 </div>
@@ -159,7 +201,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                   variant="ghost"
                   size="icon"
                   className="size-8"
-                  onClick={() => void signOut()}
+                  onClick={() => confirmDiscard(editorChanges()) && void signOut()}
                   title={email ? `Sign out (${email})` : "Sign out"}
                   aria-label="Sign out"
                 >
@@ -186,6 +228,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                     broadcastable={editor.broadcastable}
                     autoSync={autoSync}
                     onAutoSyncChange={setAutoSync}
+              onUnsavedChange={onUnsavedChange}
                   />
                 ) : (
                   <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">

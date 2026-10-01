@@ -17,9 +17,11 @@ interface Props {
   onPush: (lesson: Doc<"lessons">) => void;
   onBlank: () => void;
   onCreated: (lessonId: Id<"lessons">) => void;
+  /** Asks before the editor is switched away from unsaved work; false = cancel. */
+  confirmLeaveEditor: () => boolean;
 }
 
-export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, onPush, onBlank, onCreated }: Props) {
+export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, onPush, onBlank, onCreated, confirmLeaveEditor }: Props) {
   const [showHidden, setShowHidden] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Set<Id<"lessons">>>(new Set());
@@ -153,6 +155,7 @@ export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, o
             title={`Add sub-lesson under ${lesson.lessonNumber}`}
             aria-label={`Add sub-lesson under ${lesson.lessonNumber}`}
             onClick={() =>
+              confirmLeaveEditor() &&
               guard(async () => {
                 const id = await createLesson({ parentId: lesson._id });
                 setCollapsed((prev) => {
@@ -208,7 +211,7 @@ export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, o
         <Button
           variant="ghost"
           className="mt-2 w-full"
-          onClick={() => guard(async () => onCreated(await createLesson({})))}
+          onClick={() => confirmLeaveEditor() && guard(async () => onCreated(await createLesson({})))}
         >
           <Plus /> New Lesson
         </Button>
