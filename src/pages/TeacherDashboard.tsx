@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { LogOut, MonitorPlay, PanelLeft, PanelRight } from "lucide-react";
+import { LogOut, MonitorPlay, PanelLeft, PanelRight, SkipForward } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { LessonDrawer } from "@/components/LessonDrawer";
@@ -100,6 +100,31 @@ export function TeacherDashboard({ email }: { email: string | null }) {
     });
   };
 
+  // ---- Next lesson ---------------------------------------------------------
+  // The next pushable lesson (unlocked, not hidden) after the last pushed one, in sidebar
+  // order (2 → 2.1 → 2.1.1 → 3). Nothing pushed yet → the first pushable lesson.
+  const nextLesson = (() => {
+    if (!lessons) return null;
+    const from = liveLessonId ? lessons.findIndex((l) => l._id === liveLessonId) : -1;
+    return lessons.slice(from + 1).find((l) => !l.isLocked && !l.isHidden) ?? null;
+  })();
+  const pushNext = () => {
+    if (nextLesson) void onPush(nextLesson);
+  };
+  const pushNextRef = useRef(pushNext);
+  pushNextRef.current = pushNext;
+  useEffect(() => {
+    // ⌘/Ctrl + Shift + Enter (works while typing in the editor; plain ⌘→ would move the cursor)
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter" && e.shiftKey && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        pushNextRef.current();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   const onBlank = () => {
     if (!confirmDiscard(editorChanges(), unsavedLiveEdits)) return;
     return act(async () => {
@@ -181,7 +206,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                   <MonitorPlay className="size-5 text-primary" />
                   <span className="hidden 2xl:inline">Command Center</span>
                 </h1>
-                <div className="min-w-[10rem] flex-1">
+                <div className="flex min-w-[10rem] flex-1 items-center gap-1">
                   <StatusBadge
                     mode={session?.mode}
                     lesson={liveLesson}
@@ -196,6 +221,21 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                         : goTo({ kind: "live", nonce: Date.now() })
                     }
                   />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 shrink-0"
+                    disabled={!nextLesson}
+                    onClick={pushNext}
+                    aria-label={nextLesson ? `Push next lesson: ${nextLesson.lessonNumber} — ${nextLesson.title}` : "No next lesson"}
+                    title={
+                      nextLesson
+                        ? `Next: ${nextLesson.lessonNumber} — ${nextLesson.title} (⌘/Ctrl+Shift+Enter)`
+                        : "No more unlocked lessons after this one"
+                    }
+                  >
+                    <SkipForward />
+                  </Button>
                 </div>
                 <Button
                   variant="ghost"
