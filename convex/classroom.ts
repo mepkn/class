@@ -10,6 +10,7 @@ import {
 import type { Id } from "./_generated/dataModel";
 import { BOARD_COLORS, DEFAULT_BOARD_COLOR } from "./lib/boardColors";
 import { stripPresenterNotes } from "./lib/presenterNotes";
+import { clampSlide, splitSlides } from "./lib/slides";
 import { requireTeacher } from "./lib/requireTeacher";
 import { assertContentSize, deactivatePoll, ensureRoom, readRoom } from "./lib/room";
 
@@ -31,6 +32,8 @@ export const getActiveSession = query({
         currentContent: "",
         activeLessonId: null,
         pushedAt: null,
+        slide: { index: 0, count: 1 },
+        revealed: [] as string[],
         dusterEnabled: true,
         boardColor: DEFAULT_BOARD_COLOR as string,
         poll: null,
@@ -65,10 +68,21 @@ export const getActiveSession = query({
       }
     }
 
+    const slides = splitSlides(room.currentContent);
+    const slideIndex = clampSlide(room.currentSlide ?? 0, slides.length);
+    const revealed = slides
+      .slice(0, slideIndex + 1)
+      .map(stripPresenterNotes)
+      .map((part) => part.trim())
+      .filter((part) => part !== "");
+
     return {
       mode: room.mode,
-      // Presenter notes (`%%` lines) are stripped here: students never receive them.
-      currentContent: stripPresenterNotes(room.currentContent),
+      // Build-up: slides 1..current are revealed together, each with presenter notes
+      // (`%%` lines) stripped. Students never receive notes or upcoming slides.
+      currentContent: revealed.join("\n\n"),
+      revealed,
+      slide: { index: slideIndex, count: slides.length },
       activeLessonId: room.activeLessonId ?? null,
       pushedAt: room.pushedAt ?? null,
       dusterEnabled: room.dusterEnabled ?? true,
@@ -269,6 +283,7 @@ export const pushLesson = mutation({
       activeLessonId: lessonId,
       currentContent: lesson.content,
       pushedAt: Date.now(),
+      currentSlide: 0,
       activePollId: undefined,
       updatedAt: Date.now(),
     });
@@ -286,6 +301,7 @@ export const pushBlankBoard = mutation({
       activeLessonId: undefined,
       currentContent: "",
       pushedAt: Date.now(),
+      currentSlide: 0,
       activePollId: undefined,
       updatedAt: Date.now(),
     });
@@ -320,5 +336,19 @@ export const setBoardColor = mutation({
     if (!BOARD_COLORS.some((c) => c.id === color)) throw new ConvexError("Unknown board color");
     const room = await ensureRoom(ctx);
     await ctx.db.patch(room._id, { boardColor: color });
+  },
+});
+
+/** Shows slide `index` (0-based) of the live board; clamped to the slides that exist. */
+export const setSlide = mutation({
+  args: { index: v.number() },
+  handler: async (ctx, { index }) => {
+    await requireTeacher(ctx);
+    const room = await ensureRoom(ctx);
+    const next = clampSlide(index, splitSlides(room.currentContent).length);
+    if (next !== (room.currentSlide ?? 0)) {
+      await ctx.db.patch(room._id, { currentSlide: next, updatedAt: Date.now() });
+    }
+    return next;
   },
 });

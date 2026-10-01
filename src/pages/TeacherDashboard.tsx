@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { LogOut, MonitorPlay, PanelLeft, PanelRight, SkipForward } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, PanelLeft, PanelRight, SkipForward } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { LessonDrawer } from "@/components/LessonDrawer";
@@ -128,6 +128,31 @@ export function TeacherDashboard({ email }: { email: string | null }) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  // ---- Slides ---------------------------------------------------------------
+  const setSlide = useMutation(api.classroom.setSlide);
+  const slide = session?.mode === "lesson" ? session.slide : null;
+  const goSlide = (delta: number) => {
+    if (!slide) return;
+    const index = slide.index + delta;
+    if (index < 0 || index >= slide.count) return;
+    void act(() => setSlide({ index }));
+  };
+  const goSlideRef = useRef(goSlide);
+  goSlideRef.current = goSlide;
+  useEffect(() => {
+    // ← / → change slides, but never while typing (the editor needs its arrow keys).
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName))) return;
+      e.preventDefault();
+      goSlideRef.current(e.key === "ArrowRight" ? 1 : -1);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   const onBlank = () => {
     if (!confirmDiscard(editorChanges(), unsavedLiveEdits)) return;
     return act(async () => {
@@ -205,10 +230,6 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                 >
                   <PanelLeft />
                 </Button>
-                <h1 className="flex items-center gap-2 font-semibold" title="Command Center">
-                  <MonitorPlay className="size-5 text-primary" />
-                  <span className="hidden 2xl:inline">Command Center</span>
-                </h1>
                 <div className="flex min-w-[10rem] flex-1 items-center gap-1">
                   <StatusBadge
                     mode={session?.mode}
@@ -239,6 +260,35 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                   >
                     <SkipForward />
                   </Button>
+                  {slide && slide.count > 1 && (
+                    <div className="flex shrink-0 items-center rounded-full border" aria-label="Slides">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 rounded-full"
+                        disabled={slide.index === 0}
+                        onClick={() => goSlide(-1)}
+                        title="Previous slide (←)"
+                        aria-label="Previous slide"
+                      >
+                        <ChevronLeft />
+                      </Button>
+                      <span className="px-1 text-xs tabular-nums text-muted-foreground">
+                        {slide.index + 1} / {slide.count}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 rounded-full"
+                        disabled={slide.index === slide.count - 1}
+                        onClick={() => goSlide(1)}
+                        title="Next slide (→)"
+                        aria-label="Next slide"
+                      >
+                        <ChevronRight />
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <RightSidebarTrigger />
               </header>

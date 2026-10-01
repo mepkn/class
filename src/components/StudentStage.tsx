@@ -43,6 +43,8 @@ export function StudentStage({ readOnly = false, className }: Props) {
           {session.mode === "lesson" && (
             <LessonBoard
               content={session.currentContent}
+              slide={session.slide}
+              revealed={session.revealed}
               pushedAt={session.pushedAt}
               dusterEnabled={session.dusterEnabled}
             />
@@ -92,10 +94,14 @@ function prefersReducedMotion() {
  */
 function LessonBoard({
   content,
+  slide,
+  revealed,
   pushedAt,
   dusterEnabled,
 }: {
   content: string;
+  slide: { index: number; count: number };
+  revealed: string[];
   pushedAt: number | null;
   dusterEnabled: boolean;
 }) {
@@ -118,7 +124,15 @@ function LessonBoard({
 
   return (
     <div className="relative h-full">
-      <LessonCanvas content={content} />
+      {/* Keyed per push, not per slide: revealing the next part keeps what's already shown. */}
+      <div key={pushedAt ?? "none"} className="h-full">
+        <LessonCanvas content={content} parts={revealed} />
+      </div>
+      {slide.count > 1 && (
+        <div className="pointer-events-none absolute bottom-3 right-4 z-10 rounded-full bg-black/30 px-3 py-1 text-sm tabular-nums text-muted-foreground">
+          {slide.index + 1} / {slide.count}
+        </div>
+      )}
       {wipe && (
         <DusterWipe key={wipe.id} onDone={() => setWipe(null)}>
           <LessonCanvas content={wipe.oldContent} />
@@ -128,19 +142,42 @@ function LessonBoard({
   );
 }
 
-function LessonCanvas({ content }: { content: string }) {
+/**
+ * Renders the board. With `parts` (build-up slides), each revealed part is its own block:
+ * only a newly revealed part fades in, and the board scrolls smoothly to show it.
+ */
+function LessonCanvas({ content, parts }: { content: string; parts?: string[] }) {
+  const blocks = parts ?? (content.trim() === "" ? [] : [content]);
+  const lastRef = useRef<HTMLDivElement>(null);
+  const shown = useRef(blocks.length);
+
+  useEffect(() => {
+    if (blocks.length > shown.current) {
+      lastRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+    shown.current = blocks.length;
+  }, [blocks.length]);
+
   return (
     <div className="h-full overflow-y-auto [scrollbar-gutter:stable]">
       <article className="mx-auto w-full max-w-4xl px-5 py-8 sm:px-10 sm:py-12">
-        {content.trim() === "" ? (
+        {blocks.length === 0 ? (
           <p className="pt-24 text-center text-lg text-muted-foreground/60">
             The board is clean.
           </p>
         ) : (
-          <MarkdownRenderer
-            content={content}
-            className="prose-lg sm:prose-xl prose-p:leading-relaxed"
-          />
+          blocks.map((block, i) => (
+            <div
+              key={i}
+              ref={i === blocks.length - 1 ? lastRef : undefined}
+              className={cn(i > 0 && "mt-6 sm:mt-8", i > 0 && "animate-fade-in")}
+            >
+              <MarkdownRenderer
+                content={block}
+                className="prose-lg sm:prose-xl prose-p:leading-relaxed"
+              />
+            </div>
+          ))
         )}
       </article>
     </div>

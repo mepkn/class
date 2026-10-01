@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import MDEditor, { commands, type ICommand } from "@uiw/react-md-editor/nohighlight";
-import { CircleDot, Code2, Link2, Loader2, NotebookPen, Save, Sigma, StickyNote } from "lucide-react";
+import { CircleDot, Code2, Link2, Loader2, NotebookPen, SquareSplitVertical, Save, Sigma, StickyNote } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import type { Doc } from "../../convex/_generated/dataModel";
 import { MarkdownRenderer } from "./MarkdownRenderer";
@@ -45,6 +45,9 @@ const quickInsert: ICommand[] = [
   ),
   insertCommand("note", "Insert presenter note (only you see it)", <NotebookPen className="size-3.5" />, (sel) =>
     `\n%% ${sel || "note for yourself — students never see this"}\n`,
+  ),
+  insertCommand("slidebreak", "Insert slide break", <SquareSplitVertical className="size-3.5" />, () =>
+    "\n\n---\n\n",
   ),
   insertCommand("quicklink", "Insert link", <Link2 className="size-3.5" />, (sel) =>
     `[${sel || "link text"}](https://)`,

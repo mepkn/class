@@ -16,6 +16,7 @@ import type * as lib_lessonNumber from "../lib/lessonNumber.js";
 import type * as lib_presenterNotes from "../lib/presenterNotes.js";
 import type * as lib_requireTeacher from "../lib/requireTeacher.js";
 import type * as lib_room from "../lib/room.js";
+import type * as lib_slides from "../lib/slides.js";
 import type * as lib_teachers from "../lib/teachers.js";
 import type * as migrations from "../migrations.js";
 import type * as polls from "../polls.js";
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   "lib/presenterNotes": typeof lib_presenterNotes;
   "lib/requireTeacher": typeof lib_requireTeacher;
   "lib/room": typeof lib_room;
+  "lib/slides": typeof lib_slides;
   "lib/teachers": typeof lib_teachers;
   migrations: typeof migrations;
   polls: typeof polls;

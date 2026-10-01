@@ -22,6 +22,7 @@ export default defineSchema({
     updatedAt: v.number(),
     pushedAt: v.optional(v.number()), // set on Push to Room / Blank Blackboard (drives the duster wipe)
     dusterEnabled: v.optional(v.boolean()), // duster animation on students' screens (default on)
+    currentSlide: v.optional(v.number()), // 0-based slide within currentContent (see convex/lib/slides.ts)
     boardColor: v.optional(v.string()), // id from convex/lib/boardColors.ts (default "green")
   }),
 
