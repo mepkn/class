@@ -426,6 +426,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                 </SidebarHeader>
                 <SidebarContent className="p-3">
                   <TabsContent value="monitor" className="mt-0 space-y-3">
+                    <ScaledMonitor />
                     <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
                       <Label htmlFor="duster" className="text-sm leading-snug">
                         Duster animation
@@ -511,7 +512,6 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                         })}
                       </div>
                     </div>
-                    <ScaledMonitor />
                   </TabsContent>
                   <TabsContent value="poll" className="mt-0">
                     <PollManager activePollId={session?.poll?._id ?? null} />
