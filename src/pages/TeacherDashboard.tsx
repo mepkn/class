@@ -10,6 +10,10 @@ import { PollManager } from "@/components/PollManager";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StudentStage } from "@/components/StudentStage";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { BOARD_COLORS } from "../../convex/lib/boardColors";
+import { Switch } from "@/components/ui/switch";
 import {
   Sidebar,
   SidebarContent,
@@ -30,6 +34,8 @@ export function TeacherDashboard({ email }: { email: string | null }) {
 
   const pushLesson = useMutation(api.classroom.pushLesson);
   const pushBlankBoard = useMutation(api.classroom.pushBlankBoard);
+  const setDusterAnimation = useMutation(api.classroom.setDusterAnimation);
+  const setBoardColor = useMutation(api.classroom.setBoardColor);
 
   const [targetRef, setTargetRef] = useState<TargetRef>({ kind: "live", nonce: 0 });
   const [autoSync, setAutoSync] = useState(true);
@@ -202,7 +208,51 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                   </TabsList>
                 </SidebarHeader>
                 <SidebarContent className="p-3">
-                  <TabsContent value="monitor" className="mt-0">
+                  <TabsContent value="monitor" className="mt-0 space-y-3">
+                    <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
+                      <Label htmlFor="duster" className="text-sm leading-snug">
+                        Duster animation
+                        <span className="block text-xs font-normal text-muted-foreground">
+                          A hand wipes the board when you push a new lesson
+                        </span>
+                      </Label>
+                      <Switch
+                        id="duster"
+                        checked={session?.dusterEnabled ?? true}
+                        disabled={session === undefined}
+                        onCheckedChange={(enabled) => act(() => setDusterAnimation({ enabled }))}
+                      />
+                    </div>
+                    <div className="rounded-lg border px-3 py-2">
+                      <p className="text-sm font-medium">
+                        Board color
+                        <span className="ml-1.5 font-normal text-muted-foreground">
+                          · {BOARD_COLORS.find((c) => c.id === (session?.boardColor ?? "green"))?.label}
+                        </span>
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Board color">
+                        {BOARD_COLORS.map((c) => {
+                          const selected = (session?.boardColor ?? "green") === c.id;
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              role="radio"
+                              aria-checked={selected}
+                              aria-label={c.label}
+                              title={c.label}
+                              disabled={session === undefined}
+                              onClick={() => !selected && act(() => setBoardColor({ color: c.id }))}
+                              className={cn(
+                                "size-8 rounded-full border border-white/20 transition hover:scale-110",
+                                selected && "ring-2 ring-primary ring-offset-2 ring-offset-sidebar",
+                              )}
+                              style={{ background: c.value }}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
                     <ScaledMonitor />
                   </TabsContent>
                   <TabsContent value="poll" className="mt-0">

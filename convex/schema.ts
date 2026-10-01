@@ -20,6 +20,9 @@ export default defineSchema({
     currentContent: v.string(), // Markdown currently shown to students
     activePollId: v.optional(v.id("polls")),
     updatedAt: v.number(),
+    pushedAt: v.optional(v.number()), // set on Push to Room / Blank Blackboard (drives the duster wipe)
+    dusterEnabled: v.optional(v.boolean()), // duster animation on students' screens (default on)
+    boardColor: v.optional(v.string()), // id from convex/lib/boardColors.ts (default "green")
   }),
 
   polls: defineTable({

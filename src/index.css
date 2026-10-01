@@ -150,3 +150,102 @@
   --color-border-default: var(--border);
 }
 
+
+/* ---- Duster wipe (student board, on Push to Room / Blank Blackboard) ---- */
+:root {
+  --duster-ms: 1600ms;
+  --duster-ease: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+}
+@keyframes duster-erase {
+  from {
+    clip-path: inset(0 0 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 100%);
+  }
+}
+@keyframes duster-x {
+  from {
+    left: -4%;
+  }
+  to {
+    left: 104%;
+  }
+}
+/* Five scrubbing strokes, top ↔ bottom */
+@keyframes duster-y {
+  0%,
+  20%,
+  40%,
+  60%,
+  80%,
+  100% {
+    top: 22%;
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    top: 78%;
+  }
+}
+@keyframes duster-wobble {
+  0%,
+  100% {
+    rotate: -8deg;
+  }
+  50% {
+    rotate: 6deg;
+  }
+}
+@keyframes duster-puff {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6);
+  }
+  30% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-46px, -18px) scale(1.8);
+  }
+}
+.duster-erase {
+  animation: duster-erase var(--duster-ms) var(--duster-ease) forwards;
+}
+/* Faint chalk haze trailing the wipe edge */
+.duster-smear {
+  width: 14%;
+  translate: -100% 0;
+  background: linear-gradient(to right, transparent, rgb(255 255 255 / 0.07));
+  animation: duster-x var(--duster-ms) var(--duster-ease) forwards;
+}
+.duster-hand {
+  width: clamp(110px, 15%, 210px);
+  translate: -50% -50%;
+  animation:
+    duster-x var(--duster-ms) var(--duster-ease) forwards,
+    duster-y var(--duster-ms) linear forwards,
+    duster-wobble calc(var(--duster-ms) / 5) ease-in-out infinite;
+}
+.duster-dust {
+  position: absolute;
+  left: 4%;
+  top: 48%;
+  width: 22%;
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.55);
+  filter: blur(6px);
+  animation: duster-puff 0.45s ease-out infinite;
+}
+.duster-dust-2 {
+  top: 30%;
+  animation-delay: 0.15s;
+}
+.duster-dust-3 {
+  top: 62%;
+  animation-delay: 0.3s;
+}

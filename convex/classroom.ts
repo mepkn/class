@@ -8,6 +8,7 @@ import {
   segments,
 } from "./lib/lessonNumber";
 import type { Id } from "./_generated/dataModel";
+import { BOARD_COLORS, DEFAULT_BOARD_COLOR } from "./lib/boardColors";
 import { requireTeacher } from "./lib/requireTeacher";
 import { assertContentSize, deactivatePoll, ensureRoom, readRoom } from "./lib/room";
 
@@ -24,7 +25,15 @@ export const getActiveSession = query({
   handler: async (ctx) => {
     const room = await readRoom(ctx);
     if (!room) {
-      return { mode: "intro" as const, currentContent: "", activeLessonId: null, poll: null };
+      return {
+        mode: "intro" as const,
+        currentContent: "",
+        activeLessonId: null,
+        pushedAt: null,
+        dusterEnabled: true,
+        boardColor: DEFAULT_BOARD_COLOR as string,
+        poll: null,
+      };
     }
 
     let poll = null;
@@ -59,6 +68,9 @@ export const getActiveSession = query({
       mode: room.mode,
       currentContent: room.currentContent,
       activeLessonId: room.activeLessonId ?? null,
+      pushedAt: room.pushedAt ?? null,
+      dusterEnabled: room.dusterEnabled ?? true,
+      boardColor: room.boardColor ?? DEFAULT_BOARD_COLOR,
       poll,
     };
   },
@@ -244,6 +256,7 @@ export const pushLesson = mutation({
       mode: "lesson",
       activeLessonId: lessonId,
       currentContent: lesson.content,
+      pushedAt: Date.now(),
       activePollId: undefined,
       updatedAt: Date.now(),
     });
@@ -260,6 +273,7 @@ export const pushBlankBoard = mutation({
       mode: "lesson",
       activeLessonId: undefined,
       currentContent: "",
+      pushedAt: Date.now(),
       activePollId: undefined,
       updatedAt: Date.now(),
     });
@@ -276,3 +290,23 @@ export const updateLiveContent = mutation({
   },
 });
 
+/** Turns the duster wipe (shown to students on Push to Room / Blank Blackboard) on or off. */
+export const setDusterAnimation = mutation({
+  args: { enabled: v.boolean() },
+  handler: async (ctx, { enabled }) => {
+    await requireTeacher(ctx);
+    const room = await ensureRoom(ctx);
+    await ctx.db.patch(room._id, { dusterEnabled: enabled });
+  },
+});
+
+/** Changes the board background every student sees. */
+export const setBoardColor = mutation({
+  args: { color: v.string() },
+  handler: async (ctx, { color }) => {
+    await requireTeacher(ctx);
+    if (!BOARD_COLORS.some((c) => c.id === color)) throw new ConvexError("Unknown board color");
+    const room = await ensureRoom(ctx);
+    await ctx.db.patch(room._id, { boardColor: color });
+  },
+});
