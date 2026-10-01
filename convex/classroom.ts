@@ -9,6 +9,7 @@ import {
 } from "./lib/lessonNumber";
 import type { Id } from "./_generated/dataModel";
 import { BOARD_COLORS, DEFAULT_BOARD_COLOR } from "./lib/boardColors";
+import { stripPresenterNotes } from "./lib/presenterNotes";
 import { requireTeacher } from "./lib/requireTeacher";
 import { assertContentSize, deactivatePoll, ensureRoom, readRoom } from "./lib/room";
 
@@ -66,7 +67,8 @@ export const getActiveSession = query({
 
     return {
       mode: room.mode,
-      currentContent: room.currentContent,
+      // Presenter notes (`%%` lines) are stripped here: students never receive them.
+      currentContent: stripPresenterNotes(room.currentContent),
       activeLessonId: room.activeLessonId ?? null,
       pushedAt: room.pushedAt ?? null,
       dusterEnabled: room.dusterEnabled ?? true,
@@ -91,6 +93,16 @@ export const ensureClassroomState = internalMutation({
 // ---------------------------------------------------------------------------
 // Teacher only
 // ---------------------------------------------------------------------------
+
+/** Teacher only: the live board's full source, including presenter notes. */
+export const getLiveSource = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireTeacher(ctx);
+    const room = await readRoom(ctx);
+    return room?.currentContent ?? "";
+  },
+});
 
 export const getLessons = query({
   args: {},

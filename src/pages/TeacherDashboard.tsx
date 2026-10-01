@@ -32,6 +32,8 @@ export function TeacherDashboard({ email }: { email: string | null }) {
   const { signOut } = useAuthActions();
   const session = useQuery(api.classroom.getActiveSession);
   const lessons = useQuery(api.classroom.getLessons);
+  // Live board with presenter notes (students get a copy with notes stripped).
+  const liveSource = useQuery(api.classroom.getLiveSource);
 
   const pushLesson = useMutation(api.classroom.pushLesson);
   const pushBlankBoard = useMutation(api.classroom.pushBlankBoard);
@@ -56,7 +58,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
 
   /** Live edits students can see that were never saved into the live lesson's draft. */
   const unsavedLiveEdits =
-    session?.mode === "lesson" && liveLesson && session.currentContent !== liveLesson.content
+    session?.mode === "lesson" && liveLesson && liveSource !== undefined && liveSource !== liveLesson.content
       ? `live edits to ${liveLesson.lessonNumber} — ${liveLesson.title} that aren't saved to its draft`
       : null;
 
@@ -137,13 +139,13 @@ export function TeacherDashboard({ email }: { email: string | null }) {
   // Build the editor target. The editor is keyed so it remounts per target.
   let editor: { target: EditorTarget; key: string; initial: string; broadcastable: boolean } | null =
     null;
-  if (session !== undefined) {
+  if (session !== undefined && liveSource !== undefined) {
     // A deleted lesson falls back to the live board.
     if (targetRef.kind === "live" || (lessons !== undefined && !editingLesson)) {
       editor = {
         target: { kind: "live" },
         key: `live-${targetRef.kind === "live" ? targetRef.nonce : "fallback"}`,
-        initial: session.currentContent,
+        initial: liveSource,
         broadcastable: true,
       };
     } else if (editingLesson) {
@@ -154,7 +156,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
         // "Save draft" then stores those edits into the lesson.
         initial:
           session.mode === "lesson" && liveLessonId === editingLesson._id
-            ? session.currentContent
+            ? liveSource
             : editingLesson.content,
         broadcastable: liveLessonId === editingLesson._id,
       };

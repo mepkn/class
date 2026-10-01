@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import MDEditor, { commands, type ICommand } from "@uiw/react-md-editor/nohighlight";
-import { CircleDot, Code2, Link2, Loader2, Save, Sigma, StickyNote } from "lucide-react";
+import { CircleDot, Code2, Link2, Loader2, NotebookPen, Save, Sigma, StickyNote } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import type { Doc } from "../../convex/_generated/dataModel";
 import { MarkdownRenderer } from "./MarkdownRenderer";
+import { showPresenterNotes } from "../../convex/lib/presenterNotes";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -41,6 +42,9 @@ const quickInsert: ICommand[] = [
   ),
   insertCommand("callout", "Insert callout", <StickyNote className="size-3.5" />, (sel) =>
     `\n> **Note:** ${sel || "…"}\n`,
+  ),
+  insertCommand("note", "Insert presenter note (only you see it)", <NotebookPen className="size-3.5" />, (sel) =>
+    `\n%% ${sel || "note for yourself — students never see this"}\n`,
   ),
   insertCommand("quicklink", "Insert link", <Link2 className="size-3.5" />, (sel) =>
     `[${sel || "link text"}](https://)`,
@@ -303,11 +307,14 @@ export function LiveEditor({
           preview="live"
           commands={toolbar}
           extraCommands={extraToolbar}
-          textareaProps={{ placeholder: "Write Markdown, $math$, or ```python code…", spellCheck: false }}
+          textareaProps={{
+            placeholder: "Write Markdown, $math$, ```python code… Lines starting with %% are notes only you see.",
+            spellCheck: false,
+          }}
           components={{
             preview: (source) => (
               <div className="p-4">
-                <MarkdownRenderer content={source} />
+                <MarkdownRenderer content={showPresenterNotes(source)} />
               </div>
             ),
           }}

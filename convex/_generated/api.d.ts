@@ -13,6 +13,7 @@ import type * as classroom from "../classroom.js";
 import type * as http from "../http.js";
 import type * as lib_boardColors from "../lib/boardColors.js";
 import type * as lib_lessonNumber from "../lib/lessonNumber.js";
+import type * as lib_presenterNotes from "../lib/presenterNotes.js";
 import type * as lib_requireTeacher from "../lib/requireTeacher.js";
 import type * as lib_room from "../lib/room.js";
 import type * as lib_teachers from "../lib/teachers.js";
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/boardColors": typeof lib_boardColors;
   "lib/lessonNumber": typeof lib_lessonNumber;
+  "lib/presenterNotes": typeof lib_presenterNotes;
   "lib/requireTeacher": typeof lib_requireTeacher;
   "lib/room": typeof lib_room;
   "lib/teachers": typeof lib_teachers;
