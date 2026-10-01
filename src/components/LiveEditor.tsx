@@ -1,14 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "convex/react";
-import MDEditor, { commands, type ICommand } from "@uiw/react-md-editor/nohighlight";
-import { CircleDot, Code2, Link2, Loader2, NotebookPen, SquareSplitVertical, Save, Sigma, StickyNote } from "lucide-react";
+import MDEditor, {
+  commands,
+  type ICommand,
+} from "@uiw/react-md-editor/nohighlight";
+import {
+  CircleDot,
+  Code2,
+  Link2,
+  Loader2,
+  NotebookPen,
+  SquareSplitVertical,
+  Save,
+  Sigma,
+  StickyNote,
+} from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import type { Doc } from "../../convex/_generated/dataModel";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { showPresenterNotes } from "../../convex/lib/presenterNotes";
+import { splitSlides } from "../../convex/lib/slides";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
 import { errorMessage } from "@/lib/errorMessage";
 
@@ -34,23 +49,41 @@ function insertCommand(
 }
 
 const quickInsert: ICommand[] = [
-  insertCommand("python", "Insert Python code block", <Code2 className="size-3.5" />, (sel) =>
-    `\n\`\`\`python\n${sel || "# your code here"}\n\`\`\`\n`,
+  insertCommand(
+    "python",
+    "Insert Python code block",
+    <Code2 className="size-3.5" />,
+    (sel) => `\n\`\`\`python\n${sel || "# your code here"}\n\`\`\`\n`,
   ),
-  insertCommand("mathblock", "Insert $$ math block", <Sigma className="size-3.5" />, (sel) =>
-    `\n$$\n${sel || "E = mc^2"}\n$$\n`,
+  insertCommand(
+    "mathblock",
+    "Insert $$ math block",
+    <Sigma className="size-3.5" />,
+    (sel) => `\n$$\n${sel || "E = mc^2"}\n$$\n`,
   ),
-  insertCommand("callout", "Insert callout", <StickyNote className="size-3.5" />, (sel) =>
-    `\n> **Note:** ${sel || "…"}\n`,
+  insertCommand(
+    "callout",
+    "Insert callout",
+    <StickyNote className="size-3.5" />,
+    (sel) => `\n> **Note:** ${sel || "…"}\n`,
   ),
-  insertCommand("note", "Insert presenter note (only you see it)", <NotebookPen className="size-3.5" />, (sel) =>
-    `\n%% ${sel || "note for yourself — students never see this"}\n`,
+  insertCommand(
+    "note",
+    "Insert presenter note (only you see it)",
+    <NotebookPen className="size-3.5" />,
+    (sel) => `\n%% ${sel || "note for yourself — students never see this"}\n`,
   ),
-  insertCommand("slidebreak", "Insert slide break", <SquareSplitVertical className="size-3.5" />, () =>
-    "\n\n---\n\n",
+  insertCommand(
+    "slidebreak",
+    "Insert slide break",
+    <SquareSplitVertical className="size-3.5" />,
+    () => "\n\n---\n\n",
   ),
-  insertCommand("quicklink", "Insert link", <Link2 className="size-3.5" />, (sel) =>
-    `[${sel || "link text"}](https://)`,
+  insertCommand(
+    "quicklink",
+    "Insert link",
+    <Link2 className="size-3.5" />,
+    (sel) => `[${sel || "link text"}](https://)`,
   ),
 ];
 
@@ -73,7 +106,8 @@ const extraToolbar: ICommand[] = [
   commands.fullscreen,
 ];
 
-export type EditorTarget = { kind: "live" } | { kind: "lesson"; lesson: Doc<"lessons"> };
+export type EditorTarget =
+  { kind: "live" } | { kind: "lesson"; lesson: Doc<"lessons"> };
 
 interface Props {
   target: EditorTarget;
@@ -87,6 +121,12 @@ interface Props {
   onUnsavedChange?: (description: string | null) => void;
   /** Teaching mode: preview only, nothing editable. */
   readOnly?: boolean;
+  /** Teaching mode on the live board: which slide students see, to highlight it in the preview. */
+  liveSlide?: {
+    index: number;
+    count: number;
+    mode: "build" | "replace";
+  } | null;
 }
 
 /**
@@ -100,6 +140,7 @@ export function LiveEditor({
   onAutoSyncChange,
   onUnsavedChange,
   readOnly = false,
+  liveSlide = null,
 }: Props) {
   const [value, setValue] = useState(initialValue);
   const [lastSent, setLastSent] = useState(initialValue);
@@ -145,7 +186,8 @@ export function LiveEditor({
   }, [autoSync, broadcastable]);
 
   const unsent = broadcastable && value !== lastSent;
-  const draftDirty = target.kind === "lesson" && value !== target.lesson.content;
+  const draftDirty =
+    target.kind === "lesson" && value !== target.lesson.content;
 
   // What would be lost if this editor closed now. (Edits that already went live on the
   // live lesson are covered by the dashboard's "live edits not saved" check on push.)
@@ -175,134 +217,160 @@ export function LiveEditor({
 
   return (
     <section className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-3 py-2">
-        <div className="min-w-0 flex-1">
-          {target.kind === "live" ? (
-            <p className="truncate text-sm font-medium">Live board (scratchpad)</p>
-          ) : (
-            <div className="flex items-center gap-1.5 text-sm font-medium">
-              <input
-                key={`num-${target.lesson.lessonNumber}`}
-                defaultValue={target.lesson.lessonNumber}
-                maxLength={40}
-                inputMode="decimal"
-                aria-label="Lesson number"
-                readOnly={readOnly}
-                title="Edit the number. Sub-lessons move with it (e.g. 1 → 3 turns 1.2 into 3.2)."
-                className="w-16 shrink-0 rounded border border-transparent bg-transparent px-1 font-mono hover:border-input focus:border-input focus:outline-none"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") e.currentTarget.blur();
-                  if (e.key === "Escape") {
-                    e.currentTarget.value = target.lesson.lessonNumber;
-                    e.currentTarget.blur();
-                  }
-                }}
-                onBlur={async (e) => {
-                  const input = e.currentTarget;
-                  const lessonNumber = input.value.trim();
-                  if (!lessonNumber || lessonNumber === target.lesson.lessonNumber) {
-                    input.value = target.lesson.lessonNumber;
-                    return;
-                  }
-                  try {
-                    await updateLesson({ lessonId: target.lesson._id, lessonNumber });
-                    setError(null);
-                  } catch (err) {
-                    input.value = target.lesson.lessonNumber;
-                    setError(errorMessage(err, "Failed to renumber"));
-                  }
-                }}
+      {/* In teaching mode the scratchpad header has nothing to act on, so it's hidden. */}
+      {!(readOnly && target.kind === "live") && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-3 py-2">
+          <div className="min-w-0 flex-1">
+            {target.kind === "live" ? (
+              <p className="truncate text-sm font-medium">
+                Live board (scratchpad)
+              </p>
+            ) : (
+              <div className="flex items-center gap-1.5 text-sm font-medium">
+                <input
+                  key={`num-${target.lesson.lessonNumber}`}
+                  defaultValue={target.lesson.lessonNumber}
+                  maxLength={40}
+                  inputMode="decimal"
+                  aria-label="Lesson number"
+                  readOnly={readOnly}
+                  title="Edit the number. Sub-lessons move with it (e.g. 1 → 3 turns 1.2 into 3.2)."
+                  className="w-16 shrink-0 rounded border border-transparent bg-transparent px-1 font-mono hover:border-input focus:border-input focus:outline-none"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") e.currentTarget.blur();
+                    if (e.key === "Escape") {
+                      e.currentTarget.value = target.lesson.lessonNumber;
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  onBlur={async (e) => {
+                    const input = e.currentTarget;
+                    const lessonNumber = input.value.trim();
+                    if (
+                      !lessonNumber ||
+                      lessonNumber === target.lesson.lessonNumber
+                    ) {
+                      input.value = target.lesson.lessonNumber;
+                      return;
+                    }
+                    try {
+                      await updateLesson({
+                        lessonId: target.lesson._id,
+                        lessonNumber,
+                      });
+                      setError(null);
+                    } catch (err) {
+                      input.value = target.lesson.lessonNumber;
+                      setError(errorMessage(err, "Failed to renumber"));
+                    }
+                  }}
+                />
+                <span className="shrink-0">—</span>
+                <input
+                  key={target.lesson.title}
+                  defaultValue={target.lesson.title}
+                  maxLength={200}
+                  aria-label="Lesson title"
+                  readOnly={readOnly}
+                  className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 hover:border-input focus:border-input focus:outline-none"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") e.currentTarget.blur();
+                    if (e.key === "Escape") {
+                      e.currentTarget.value = target.lesson.title;
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  onBlur={async (e) => {
+                    const title = e.currentTarget.value.trim();
+                    if (!title || title === target.lesson.title) {
+                      e.currentTarget.value = target.lesson.title;
+                      return;
+                    }
+                    try {
+                      await updateLesson({
+                        lessonId: target.lesson._id,
+                        title,
+                      });
+                    } catch (err) {
+                      setError(errorMessage(err, "Failed to rename"));
+                    }
+                  }}
+                />
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {target.kind === "live"
+                ? "Edits what students see right now."
+                : broadcastable
+                  ? "Editing the live lesson's draft — changes can go live."
+                  : "Editing a draft — not visible to students until pushed."}
+            </p>
+          </div>
+
+          {broadcastable && !readOnly && (
+            <div className="flex items-center gap-2">
+              <Switch
+                id="autosync"
+                checked={autoSync}
+                onCheckedChange={onAutoSyncChange}
               />
-              <span className="shrink-0">—</span>
-              <input
-                key={target.lesson.title}
-                defaultValue={target.lesson.title}
-                maxLength={200}
-                aria-label="Lesson title"
-                readOnly={readOnly}
-                className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 hover:border-input focus:border-input focus:outline-none"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") e.currentTarget.blur();
-                  if (e.key === "Escape") {
-                    e.currentTarget.value = target.lesson.title;
-                    e.currentTarget.blur();
-                  }
-                }}
-                onBlur={async (e) => {
-                  const title = e.currentTarget.value.trim();
-                  if (!title || title === target.lesson.title) {
-                    e.currentTarget.value = target.lesson.title;
-                    return;
-                  }
-                  try {
-                    await updateLesson({ lessonId: target.lesson._id, title });
-                  } catch (err) {
-                    setError(errorMessage(err, "Failed to rename"));
-                  }
-                }}
-              />
+              <Label
+                htmlFor="autosync"
+                className={autoSync ? "text-sm" : "text-sm text-amber-300"}
+                title={
+                  autoSync
+                    ? "Pause to edit without students seeing it"
+                    : "Resume to send your edits to students"
+                }
+              >
+                {autoSync
+                  ? "Live"
+                  : unsent
+                    ? "Paused · unsent changes"
+                    : "Paused"}
+              </Label>
             </div>
           )}
-          <p className="text-xs text-muted-foreground">
-            {target.kind === "live"
-              ? "Edits what students see right now."
-              : broadcastable
-                ? "Editing the live lesson's draft — changes can go live."
-                : "Editing a draft — not visible to students until pushed."}
-          </p>
-        </div>
 
-        {broadcastable && !readOnly && (
-          <div className="flex items-center gap-2">
-            <Switch
-              id="autosync"
-              checked={autoSync}
-              onCheckedChange={onAutoSyncChange}
-            />
-            <Label
-              htmlFor="autosync"
-              className={autoSync ? "text-sm" : "text-sm text-amber-300"}
-              title={autoSync ? "Pause to edit without students seeing it" : "Resume to send your edits to students"}
+          {target.kind === "lesson" && !readOnly && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={saveDraft}
+              disabled={!draftDirty || savingDraft || tooLarge}
             >
-              {autoSync ? "Live" : unsent ? "Paused · unsent changes" : "Paused"}
-            </Label>
-          </div>
-        )}
+              {savingDraft ? <Loader2 className="animate-spin" /> : <Save />}{" "}
+              Save draft
+            </Button>
+          )}
+        </div>
+      )}
 
-        {target.kind === "lesson" && !readOnly && (
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={saveDraft}
-            disabled={!draftDirty || savingDraft || tooLarge}
-          >
-            {savingDraft ? <Loader2 className="animate-spin" /> : <Save />} Save draft
-          </Button>
-        )}
-      </div>
-
-      <div className="flex min-h-6 items-center gap-3 px-3 py-1 text-xs" aria-live="polite">
-        {readOnly && (
-          <span className="text-muted-foreground">
-            Teaching mode — read only. Your 📝 notes are visible only to you.
-          </span>
-        )}
-        {broadcastable && autoSync && (inFlight > 0 || unsent) && (
+      <div
+        className={cn("flex items-center gap-3 px-3 text-xs", !readOnly && "min-h-6 py-1")}
+        aria-live="polite"
+      >
+        {!readOnly && broadcastable && autoSync && (inFlight > 0 || unsent) && (
           <span className="flex items-center gap-1 text-muted-foreground">
             <Loader2 className="size-3 animate-spin" /> Syncing…
           </span>
         )}
-        {broadcastable && autoSync && inFlight === 0 && !unsent && (
+        {!readOnly && broadcastable && autoSync && inFlight === 0 && !unsent && (
           <span className="flex items-center gap-1 text-success">
             <CircleDot className="size-3" /> Live
           </span>
         )}
-        {broadcastable && !autoSync && (
+        {!readOnly && broadcastable && !autoSync && (
           <span className="text-muted-foreground">
-            Paused — students see the last sent version. Switch back on to send your edits.
+            Paused — students see the last sent version. Switch back on to send
+            your edits.
           </span>
         )}
-        {draftDirty && <span className="text-muted-foreground">Draft has unsaved changes</span>}
+        {draftDirty && (
+          <span className="text-muted-foreground">
+            Draft has unsaved changes
+          </span>
+        )}
         {tooLarge && (
           <span className="text-destructive">
             Content is {(bytes / 1024).toFixed(0)} KB — max 200 KB
@@ -322,18 +390,80 @@ export function LiveEditor({
           commands={toolbar}
           extraCommands={extraToolbar}
           textareaProps={{
-            placeholder: "Write Markdown, $math$, ```python code… Lines starting with %% are notes only you see.",
+            placeholder:
+              "Write Markdown, $math$, ```python code… Lines starting with %% are notes only you see.",
             spellCheck: false,
           }}
           components={{
-            preview: (source) => (
-              <div className="p-4">
-                <MarkdownRenderer content={showPresenterNotes(source)} />
-              </div>
-            ),
+            preview: (source) =>
+              readOnly && liveSlide && liveSlide.count > 1 ? (
+                <SlidePreview source={source} slide={liveSlide} />
+              ) : (
+                <div className="p-4">
+                  <MarkdownRenderer content={showPresenterNotes(source)} />
+                </div>
+              ),
           }}
         />
       </div>
     </section>
+  );
+}
+
+/**
+ * Teaching-mode preview of the live lesson, split into slides: the slide students
+ * currently see is outlined and tagged, slides already on their screen stay normal,
+ * and slides not yet shown are dimmed. Follows the current slide as it changes.
+ */
+function SlidePreview({
+  source,
+  slide,
+}: {
+  source: string;
+  slide: { index: number; count: number; mode: "build" | "replace" };
+}) {
+  const parts = useMemo(() => splitSlides(source), [source]);
+  const currentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    currentRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+    });
+  }, [slide.index]);
+
+  return (
+    <div className="space-y-3 p-4">
+      {parts.map((part, i) => {
+        const current = i === slide.index;
+        const onScreen = current || (slide.mode === "build" && i < slide.index);
+        return (
+          <div
+            key={i}
+            ref={current ? currentRef : undefined}
+            className={cn(
+              "relative scroll-my-6 rounded-lg border-l-4 py-2 pl-4 pr-2 transition-opacity",
+              current
+                ? "border-primary bg-primary/10"
+                : onScreen
+                  ? "border-primary/30"
+                  : "border-transparent opacity-35",
+            )}
+          >
+            <span
+              className={cn(
+                "absolute right-2 top-2 rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums",
+                current
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground",
+              )}
+            >
+              {i + 1}
+            </span>
+            <MarkdownRenderer content={showPresenterNotes(part)} />
+          </div>
+        );
+      })}
+    </div>
   );
 }

@@ -323,6 +323,11 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                     onAutoSyncChange={setAutoSync}
                     onUnsavedChange={onUnsavedChange}
                     readOnly={teaching}
+                    liveSlide={
+                      teaching && editor.broadcastable && session?.mode === "lesson"
+                        ? { ...session.slide, mode: session.slideMode }
+                        : null
+                    }
                   />
                 ) : (
                   <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
