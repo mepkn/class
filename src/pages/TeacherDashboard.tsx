@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarHeader,
   SidebarInset,
   SidebarProvider,
@@ -237,16 +238,6 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                     <SkipForward />
                   </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8"
-                  onClick={() => confirmDiscard(editorChanges()) && void signOut()}
-                  title={email ? `Sign out (${email})` : "Sign out"}
-                  aria-label="Sign out"
-                >
-                  <LogOut />
-                </Button>
                 <RightSidebarTrigger />
               </header>
 
@@ -279,11 +270,11 @@ export function TeacherDashboard({ email }: { email: string | null }) {
             </SidebarInset>
 
             <Sidebar side="right">
-              <Tabs defaultValue="monitor" className="flex h-full min-h-0 flex-col">
+              <Tabs defaultValue="monitor" className="flex min-h-0 flex-1 flex-col">
                 <SidebarHeader className="border-b border-sidebar-border p-3">
                   <TabsList className="w-full">
                     <TabsTrigger value="monitor" className="flex-1">
-                      Live Student Monitor
+                      Classroom
                     </TabsTrigger>
                     <TabsTrigger value="poll" className="flex-1">
                       Polls {session?.mode === "poll" && "•"}
@@ -349,6 +340,16 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                   </TabsContent>
                 </SidebarContent>
               </Tabs>
+              <SidebarFooter className="border-t border-sidebar-border p-3">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                  onClick={() => confirmDiscard(editorChanges()) && void signOut()}
+                >
+                  <LogOut />
+                  <span className="truncate">Sign out{email ? ` (${email})` : ""}</span>
+                </Button>
+              </SidebarFooter>
             </Sidebar>
           </SidebarProvider>
         )}
