@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { ChevronLeft, ChevronRight, LogOut, PanelLeft, PanelRight, SkipForward } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+  PanelLeft,
+  PanelRight,
+  Presentation,
+  SkipBack,
+  SkipForward,
+} from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { LessonDrawer } from "@/components/LessonDrawer";
@@ -104,25 +113,54 @@ export function TeacherDashboard({ email }: { email: string | null }) {
     });
   };
 
+  // ---- Teaching mode --------------------------------------------------------
+  // Read-only presenting: no editing anywhere, preview-only editor, and the
+  // next-lesson / slide controls appear as a floating bar. Remembered per browser.
+  const [teaching, setTeachingState] = useState(() => {
+    try {
+      return window.localStorage.getItem("teachingMode") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const setTeaching = (on: boolean) => {
+    setTeachingState(on);
+    try {
+      window.localStorage.setItem("teachingMode", on ? "1" : "0");
+    } catch {
+      /* storage unavailable: still works for this tab */
+    }
+  };
+  const teachingRef = useRef(teaching);
+  teachingRef.current = teaching;
+
   // ---- Next lesson ---------------------------------------------------------
   // The next pushable lesson (unlocked, not hidden) after the last pushed one, in sidebar
   // order (2 → 2.1 → 2.1.1 → 3). Nothing pushed yet → the first pushable lesson.
-  const nextLesson = (() => {
-    if (!lessons) return null;
-    const from = liveLessonId ? lessons.findIndex((l) => l._id === liveLessonId) : -1;
-    return lessons.slice(from + 1).find((l) => !l.isLocked && !l.isHidden) ?? null;
-  })();
+  const pushable = (l: Doc<"lessons">) => !l.isLocked && !l.isHidden;
+  const liveIndex = lessons && liveLessonId ? lessons.findIndex((l) => l._id === liveLessonId) : -1;
+  const nextLesson = lessons ? (lessons.slice(liveIndex + 1).find(pushable) ?? null) : null;
+  // Previous: only meaningful once something has been pushed.
+  const prevLesson =
+    lessons && liveIndex > 0 ? (lessons.slice(0, liveIndex).reverse().find(pushable) ?? null) : null;
   const pushNext = () => {
     if (nextLesson) void onPush(nextLesson);
   };
-  const pushNextRef = useRef(pushNext);
-  pushNextRef.current = pushNext;
+  const pushPrev = () => {
+    if (prevLesson) void onPush(prevLesson);
+  };
+  const lessonNavRef = useRef({ pushNext, pushPrev });
+  lessonNavRef.current = { pushNext, pushPrev };
   useEffect(() => {
-    // ⌘/Ctrl + Shift + Enter (works while typing in the editor; plain ⌘→ would move the cursor)
+    // Teaching mode only: ⌘/Ctrl+Shift+→ (or +Enter) next lesson, ⌘/Ctrl+Shift+← previous.
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Enter" && e.shiftKey && (e.metaKey || e.ctrlKey)) {
+      if (!teachingRef.current || !e.shiftKey || !(e.metaKey || e.ctrlKey)) return;
+      if (e.key === "Enter" || e.key === "ArrowRight") {
         e.preventDefault();
-        pushNextRef.current();
+        lessonNavRef.current.pushNext();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        lessonNavRef.current.pushPrev();
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -143,6 +181,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
   useEffect(() => {
     // ← / → change slides, but never while typing (the editor needs its arrow keys).
     const onKeyDown = (e: KeyboardEvent) => {
+      if (!teachingRef.current) return;
       if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
       const el = e.target as HTMLElement | null;
@@ -209,6 +248,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
         onBlank={onBlank}
         onCreated={(lessonId) => setTargetRef({ kind: "lesson", lessonId })}
         confirmLeaveEditor={() => confirmDiscard(editorChanges())}
+        readOnly={teaching}
       />
       <WithSidebar>
         {(left) => (
@@ -246,51 +286,20 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                         : goTo({ kind: "live", nonce: Date.now() })
                     }
                   />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 shrink-0"
-                    disabled={!nextLesson}
-                    onClick={pushNext}
-                    aria-label={nextLesson ? `Push next lesson: ${nextLesson.lessonNumber} — ${nextLesson.title}` : "No next lesson"}
-                    title={
-                      nextLesson
-                        ? `Next: ${nextLesson.lessonNumber} — ${nextLesson.title} (⌘/Ctrl+Shift+Enter)`
-                        : "No more unlocked lessons after this one"
-                    }
-                  >
-                    <SkipForward />
-                  </Button>
-                  {slide && slide.count > 1 && (
-                    <div className="flex shrink-0 items-center rounded-full border" aria-label="Slides">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 rounded-full"
-                        disabled={slide.index === 0}
-                        onClick={() => goSlide(-1)}
-                        title="Previous slide (←)"
-                        aria-label="Previous slide"
-                      >
-                        <ChevronLeft />
-                      </Button>
-                      <span className="px-1 text-xs tabular-nums text-muted-foreground">
-                        {slide.index + 1} / {slide.count}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 rounded-full"
-                        disabled={slide.index === slide.count - 1}
-                        onClick={() => goSlide(1)}
-                        title="Next slide (→)"
-                        aria-label="Next slide"
-                      >
-                        <ChevronRight />
-                      </Button>
-                    </div>
-                  )}
                 </div>
+                <Button
+                  variant={teaching ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTeaching(!teaching)}
+                  aria-pressed={teaching}
+                  title={
+                    teaching
+                      ? "Leave teaching mode (editing allowed again)"
+                      : "Teaching mode: read-only, with floating next / slide controls"
+                  }
+                >
+                  <Presentation /> {teaching ? "Teaching" : "Teach"}
+                </Button>
                 <RightSidebarTrigger />
               </header>
 
@@ -303,7 +312,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                 </div>
               )}
 
-              <div className="flex min-h-0 flex-1 flex-col">
+              <div className={cn("flex min-h-0 flex-1 flex-col", teaching && "teaching-editor")}>
                 {editor ? (
                   <LiveEditor
                     key={editor.key}
@@ -312,7 +321,8 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                     broadcastable={editor.broadcastable}
                     autoSync={autoSync}
                     onAutoSyncChange={setAutoSync}
-              onUnsavedChange={onUnsavedChange}
+                    onUnsavedChange={onUnsavedChange}
+                    readOnly={teaching}
                   />
                 ) : (
                   <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
@@ -320,6 +330,81 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                   </div>
                 )}
               </div>
+
+              {teaching && (
+                <>
+                  {/* Bottom-left: lessons */}
+                  <div
+                    className="teach-fab absolute left-3 z-30 flex items-center gap-0.5 rounded-full border bg-card/95 p-1 shadow-lg backdrop-blur sm:left-5 [&_svg]:size-4"
+                    aria-label="Lessons"
+                  >
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 rounded-full"
+                      disabled={!prevLesson}
+                      onClick={pushPrev}
+                      aria-label={prevLesson ? `Push previous lesson: ${prevLesson.lessonNumber} — ${prevLesson.title}` : "No previous lesson"}
+                      title={
+                        prevLesson
+                          ? `Previous: ${prevLesson.lessonNumber} — ${prevLesson.title} (⌘/Ctrl+Shift+←)`
+                          : "No earlier unlocked lesson"
+                      }
+                    >
+                      <SkipBack />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 rounded-full"
+                      disabled={!nextLesson}
+                      onClick={pushNext}
+                      aria-label={nextLesson ? `Push next lesson: ${nextLesson.lessonNumber} — ${nextLesson.title}` : "No next lesson"}
+                      title={
+                        nextLesson
+                          ? `Next: ${nextLesson.lessonNumber} — ${nextLesson.title} (⌘/Ctrl+Shift+→)`
+                          : "No more unlocked lessons after this one"
+                      }
+                    >
+                      <SkipForward />
+                    </Button>
+                  </div>
+
+                  {/* Bottom-right: slides (only when the live lesson has them) */}
+                  {slide && slide.count > 1 && (
+                    <div
+                      className="teach-fab absolute right-3 z-30 flex items-center gap-0.5 rounded-full border bg-card/95 p-1 shadow-lg backdrop-blur sm:right-5 [&_svg]:size-4"
+                      aria-label="Slides"
+                    >
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 rounded-full"
+                        disabled={slide.index === 0}
+                        onClick={() => goSlide(-1)}
+                        title="Previous slide (←)"
+                        aria-label="Previous slide"
+                      >
+                        <ChevronLeft />
+                      </Button>
+                      <span className="min-w-10 px-0.5 text-center text-xs tabular-nums text-muted-foreground">
+                        {slide.index + 1} / {slide.count}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 rounded-full"
+                        disabled={slide.index === slide.count - 1}
+                        onClick={() => goSlide(1)}
+                        title="Next slide (→)"
+                        aria-label="Next slide"
+                      >
+                        <ChevronRight />
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
             </SidebarInset>
 
             <Sidebar side="right">

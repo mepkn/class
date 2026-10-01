@@ -85,6 +85,8 @@ interface Props {
   onAutoSyncChange: (on: boolean) => void;
   /** Called with a description of work that would be lost if the editor closed, or null. */
   onUnsavedChange?: (description: string | null) => void;
+  /** Teaching mode: preview only, nothing editable. */
+  readOnly?: boolean;
 }
 
 /**
@@ -97,6 +99,7 @@ export function LiveEditor({
   autoSync,
   onAutoSyncChange,
   onUnsavedChange,
+  readOnly = false,
 }: Props) {
   const [value, setValue] = useState(initialValue);
   const [lastSent, setLastSent] = useState(initialValue);
@@ -184,6 +187,7 @@ export function LiveEditor({
                 maxLength={40}
                 inputMode="decimal"
                 aria-label="Lesson number"
+                readOnly={readOnly}
                 title="Edit the number. Sub-lessons move with it (e.g. 1 → 3 turns 1.2 into 3.2)."
                 className="w-16 shrink-0 rounded border border-transparent bg-transparent px-1 font-mono hover:border-input focus:border-input focus:outline-none"
                 onKeyDown={(e) => {
@@ -215,6 +219,7 @@ export function LiveEditor({
                 defaultValue={target.lesson.title}
                 maxLength={200}
                 aria-label="Lesson title"
+                readOnly={readOnly}
                 className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 hover:border-input focus:border-input focus:outline-none"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") e.currentTarget.blur();
@@ -247,7 +252,7 @@ export function LiveEditor({
           </p>
         </div>
 
-        {broadcastable && (
+        {broadcastable && !readOnly && (
           <div className="flex items-center gap-2">
             <Switch
               id="autosync"
@@ -264,7 +269,7 @@ export function LiveEditor({
           </div>
         )}
 
-        {target.kind === "lesson" && (
+        {target.kind === "lesson" && !readOnly && (
           <Button
             size="sm"
             variant="secondary"
@@ -277,6 +282,11 @@ export function LiveEditor({
       </div>
 
       <div className="flex min-h-6 items-center gap-3 px-3 py-1 text-xs" aria-live="polite">
+        {readOnly && (
+          <span className="text-muted-foreground">
+            Teaching mode — read only. Your 📝 notes are visible only to you.
+          </span>
+        )}
         {broadcastable && autoSync && (inFlight > 0 || unsent) && (
           <span className="flex items-center gap-1 text-muted-foreground">
             <Loader2 className="size-3 animate-spin" /> Syncing…
@@ -307,7 +317,8 @@ export function LiveEditor({
           onChange={(v) => onChange(v ?? "")}
           height="100%"
           visibleDragbar={false}
-          preview="live"
+          preview={readOnly ? "preview" : "live"}
+          hideToolbar={readOnly}
           commands={toolbar}
           extraCommands={extraToolbar}
           textareaProps={{

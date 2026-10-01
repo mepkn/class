@@ -255,3 +255,18 @@
 .md-body blockquote p:last-of-type::after {
   content: none;
 }
+
+/* ---- Teaching mode floating bars ---- */
+.teach-fab {
+  /* Above the iPhone home indicator (needs viewport-fit=cover in index.html) */
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
+}
+@media (min-width: 640px) {
+  .teach-fab {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 1.25rem);
+  }
+}
+/* Reserve room under the preview so the bars never hide the last lines */
+.teaching-editor .w-md-editor-preview {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 4.5rem) !important;
+}

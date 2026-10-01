@@ -19,9 +19,11 @@ interface Props {
   onCreated: (lessonId: Id<"lessons">) => void;
   /** Asks before the editor is switched away from unsaved work; false = cancel. */
   confirmLeaveEditor: () => boolean;
+  /** Teaching mode: only opening and pushing lessons; no creating/editing/deleting. */
+  readOnly?: boolean;
 }
 
-export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, onPush, onBlank, onCreated, confirmLeaveEditor }: Props) {
+export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, onPush, onBlank, onCreated, confirmLeaveEditor, readOnly = false }: Props) {
   const [showHidden, setShowHidden] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Set<Id<"lessons">>>(new Set());
@@ -124,7 +126,7 @@ export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, o
         </button>
         </div>
         <div className="mt-1.5 flex items-center gap-1 pl-5">
-          {!isLive && (
+          {!isLive && !readOnly && (
             <>
               <Button
                 variant="ghost"
@@ -148,28 +150,30 @@ export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, o
               </Button>
             </>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            title={`Add sub-lesson under ${lesson.lessonNumber}`}
-            aria-label={`Add sub-lesson under ${lesson.lessonNumber}`}
-            onClick={() =>
-              confirmLeaveEditor() &&
-              guard(async () => {
-                const id = await createLesson({ parentId: lesson._id });
-                setCollapsed((prev) => {
-                  const next = new Set(prev);
-                  next.delete(lesson._id);
-                  return next;
-                });
-                onCreated(id);
-              })
-            }
-          >
-            <ListPlus />
-          </Button>
-          {!isLive && (
+          {!readOnly && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              title={`Add sub-lesson under ${lesson.lessonNumber}`}
+              aria-label={`Add sub-lesson under ${lesson.lessonNumber}`}
+              onClick={() =>
+                confirmLeaveEditor() &&
+                guard(async () => {
+                  const id = await createLesson({ parentId: lesson._id });
+                  setCollapsed((prev) => {
+                    const next = new Set(prev);
+                    next.delete(lesson._id);
+                    return next;
+                  });
+                  onCreated(id);
+                })
+              }
+            >
+              <ListPlus />
+            </Button>
+          )}
+          {!isLive && !readOnly && (
             <Button
               variant="ghost"
               size="icon"
@@ -208,13 +212,15 @@ export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, o
         <Button variant="outline" className="w-full" onClick={onBlank}>
           <Eraser /> Blank Blackboard
         </Button>
-        <Button
-          variant="ghost"
-          className="mt-2 w-full"
-          onClick={() => confirmLeaveEditor() && guard(async () => onCreated(await createLesson({})))}
-        >
-          <Plus /> New Lesson
-        </Button>
+        {!readOnly && (
+          <Button
+            variant="ghost"
+            className="mt-2 w-full"
+            onClick={() => confirmLeaveEditor() && guard(async () => onCreated(await createLesson({})))}
+          >
+            <Plus /> New Lesson
+          </Button>
+        )}
         {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
       </SidebarHeader>
       <SidebarContent className="p-2">
