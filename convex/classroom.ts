@@ -11,6 +11,7 @@ import type { Id } from "./_generated/dataModel";
 import { BOARD_COLORS, DEFAULT_BOARD_COLOR } from "./lib/boardColors";
 import { stripPresenterNotes } from "./lib/presenterNotes";
 import { clampSlide, splitSlides } from "./lib/slides";
+import { slideMode } from "./schema";
 import { requireTeacher } from "./lib/requireTeacher";
 import { assertContentSize, deactivatePoll, ensureRoom, readRoom } from "./lib/room";
 
@@ -36,6 +37,7 @@ export const getActiveSession = query({
         revealed: [] as string[],
         dusterEnabled: true,
         boardColor: DEFAULT_BOARD_COLOR as string,
+        slideMode: "build" as "build" | "replace",
         poll: null,
       };
     }
@@ -70,16 +72,17 @@ export const getActiveSession = query({
 
     const slides = splitSlides(room.currentContent);
     const slideIndex = clampSlide(room.currentSlide ?? 0, slides.length);
-    const revealed = slides
-      .slice(0, slideIndex + 1)
+    const shown =
+      (room.slideMode ?? "build") === "replace" ? [slides[slideIndex]] : slides.slice(0, slideIndex + 1);
+    const revealed = shown
       .map(stripPresenterNotes)
       .map((part) => part.trim())
       .filter((part) => part !== "");
 
     return {
       mode: room.mode,
-      // Build-up: slides 1..current are revealed together, each with presenter notes
-      // (`%%` lines) stripped. Students never receive notes or upcoming slides.
+      // Build-up: slides 1..current are shown together; replace: only the current one.
+      // Presenter notes (`%%` lines) are stripped. Students never see upcoming slides.
       currentContent: revealed.join("\n\n"),
       revealed,
       slide: { index: slideIndex, count: slides.length },
@@ -87,6 +90,7 @@ export const getActiveSession = query({
       pushedAt: room.pushedAt ?? null,
       dusterEnabled: room.dusterEnabled ?? true,
       boardColor: room.boardColor ?? DEFAULT_BOARD_COLOR,
+      slideMode: room.slideMode ?? "build",
       poll,
     };
   },
@@ -350,5 +354,15 @@ export const setSlide = mutation({
       await ctx.db.patch(room._id, { currentSlide: next, updatedAt: Date.now() });
     }
     return next;
+  },
+});
+
+/** Global: how `---` slides advance for every lesson ("build" adds, "replace" swaps). */
+export const setSlideMode = mutation({
+  args: { mode: slideMode },
+  handler: async (ctx, { mode }) => {
+    await requireTeacher(ctx);
+    const room = await ensureRoom(ctx);
+    await ctx.db.patch(room._id, { slideMode: mode, updatedAt: Date.now() });
   },
 });

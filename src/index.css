@@ -249,3 +249,9 @@
   top: 62%;
   animation-delay: 0.3s;
 }
+
+/* Callouts (`> **Note:** …`, presenter notes) shouldn't get typographic quote marks */
+.md-body blockquote p:first-of-type::before,
+.md-body blockquote p:last-of-type::after {
+  content: none;
+}

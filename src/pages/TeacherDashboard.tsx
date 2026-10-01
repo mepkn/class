@@ -39,6 +39,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
   const pushBlankBoard = useMutation(api.classroom.pushBlankBoard);
   const setDusterAnimation = useMutation(api.classroom.setDusterAnimation);
   const setBoardColor = useMutation(api.classroom.setBoardColor);
+  const setSlideMode = useMutation(api.classroom.setSlideMode);
 
   const [targetRef, setTargetRef] = useState<TargetRef>({ kind: "live", nonce: 0 });
   const [autoSync, setAutoSync] = useState(true);
@@ -375,6 +376,47 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                               )}
                               style={{ background: c.value }}
                             />
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border px-3 py-2">
+                      <p className="text-sm font-medium">
+                        Slides
+                        <span className="block text-xs font-normal text-muted-foreground">
+                          How each → step shows <code>---</code> slides, for every lesson
+                        </span>
+                      </p>
+                      <div
+                        className="mt-2 flex rounded-md border p-0.5 text-xs"
+                        role="radiogroup"
+                        aria-label="How slides advance"
+                      >
+                        {(
+                          [
+                            ["build", "Build-up", "Each step adds the next slide below the previous ones"],
+                            ["replace", "Replace", "Each step shows only the next slide"],
+                          ] as const
+                        ).map(([mode, label, hint]) => {
+                          const selected = (session?.slideMode ?? "build") === mode;
+                          return (
+                            <button
+                              key={mode}
+                              type="button"
+                              role="radio"
+                              aria-checked={selected}
+                              title={hint}
+                              disabled={session === undefined}
+                              onClick={() => !selected && act(() => setSlideMode({ mode }))}
+                              className={cn(
+                                "flex-1 rounded px-2 py-1 disabled:cursor-not-allowed disabled:opacity-50",
+                                selected
+                                  ? "bg-secondary font-medium text-foreground"
+                                  : "text-muted-foreground hover:text-foreground",
+                              )}
+                            >
+                              {label}
+                            </button>
                           );
                         })}
                       </div>

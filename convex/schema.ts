@@ -2,6 +2,9 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
 
+// "build": each step adds the next slide under the previous ones. "replace": one slide at a time.
+export const slideMode = v.union(v.literal("build"), v.literal("replace"));
+
 export default defineSchema({
   ...authTables,
 
@@ -22,6 +25,7 @@ export default defineSchema({
     updatedAt: v.number(),
     pushedAt: v.optional(v.number()), // set on Push to Room / Blank Blackboard (drives the duster wipe)
     dusterEnabled: v.optional(v.boolean()), // duster animation on students' screens (default on)
+    slideMode: v.optional(slideMode), // global: how `---` slides advance (default "build")
     currentSlide: v.optional(v.number()), // 0-based slide within currentContent (see convex/lib/slides.ts)
     boardColor: v.optional(v.string()), // id from convex/lib/boardColors.ts (default "green")
   }),
