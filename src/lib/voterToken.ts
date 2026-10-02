@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
 
-const STORAGE_KEY = "ai-classroom.voterToken";
+const STORAGE_KEY = "class.voterToken";
 let memoryToken: string | null = null;
 
 /**

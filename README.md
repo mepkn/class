@@ -1,4 +1,4 @@
-# Live Blackboard AI Classroom
+# Live Blackboard Class
 
 A real-time classroom. One teacher controls what every anonymous student sees: a
 welcome screen, a live Markdown lesson (with KaTeX math and highlighted Python), or a poll.

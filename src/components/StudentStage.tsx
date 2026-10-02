@@ -71,7 +71,7 @@ function IntroScreen() {
         <GraduationCap className="relative size-16 text-primary" strokeWidth={1.5} />
       </div>
       <div className="space-y-3">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">Welcome to AI Class.</h1>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">Welcome to Class.</h1>
         <p className="text-lg text-muted-foreground sm:text-xl">Waiting for session to start…</p>
       </div>
     </div>
