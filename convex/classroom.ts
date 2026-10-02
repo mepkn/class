@@ -7,7 +7,7 @@ import {
   parentNumber,
   segments,
 } from "./lib/lessonNumber";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { BOARD_COLORS, DEFAULT_BOARD_COLOR } from "./lib/boardColors";
 import { stripPresenterNotes } from "./lib/presenterNotes";
 import { clampSlide, splitSlides } from "./lib/slides";
@@ -122,12 +122,30 @@ export const getLiveSource = query({
   },
 });
 
+/** A lesson without its Markdown body: what the sidebar list needs. */
+export type LessonSummary = Omit<Doc<"lessons">, "content">;
+
+/**
+ * The sidebar list, without `content`: lessons can be up to 200 KB each, and this
+ * query re-sends the whole list on every lesson change. Bodies load via `getLesson`.
+ */
 export const getLessons = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<LessonSummary[]> => {
     await requireTeacher(ctx);
     const lessons = await ctx.db.query("lessons").collect();
-    return lessons.sort((a, b) => compareLessonNumbers(a.lessonNumber, b.lessonNumber));
+    return lessons
+      .sort((a, b) => compareLessonNumbers(a.lessonNumber, b.lessonNumber))
+      .map(({ content: _content, ...summary }) => summary);
+  },
+});
+
+/** One lesson including its Markdown body (null if it was deleted). */
+export const getLesson = query({
+  args: { lessonId: v.id("lessons") },
+  handler: async (ctx, { lessonId }) => {
+    await requireTeacher(ctx);
+    return await ctx.db.get(lessonId);
   },
 });
 

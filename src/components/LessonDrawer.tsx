@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import { ChevronDown, ChevronRight, Eye, EyeOff, ListPlus, Lock, LockOpen, Plus, Radio, Eraser, Trash2 } from "lucide-react";
 import { api } from "../../convex/_generated/api";
-import type { Doc, Id } from "../../convex/_generated/dataModel";
+import type { Id } from "../../convex/_generated/dataModel";
+import type { LessonSummary } from "../../convex/classroom";
 import { errorMessage } from "@/lib/errorMessage";
 import { parentNumber } from "../../convex/lib/lessonNumber";
 import { Button } from "@/components/ui/button";
@@ -10,11 +11,11 @@ import { Sidebar, SidebarContent, SidebarHeader } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils";
 
 interface Props {
-  lessons: Doc<"lessons">[] | undefined;
+  lessons: LessonSummary[] | undefined;
   liveLessonId: Id<"lessons"> | null;
   editingLessonId: Id<"lessons"> | null;
-  onOpen: (lesson: Doc<"lessons">) => void;
-  onPush: (lesson: Doc<"lessons">) => void;
+  onOpen: (lesson: LessonSummary) => void;
+  onPush: (lesson: LessonSummary) => void;
   onBlank: () => void;
   onCreated: (lessonId: Id<"lessons">) => void;
   /** Asks before the editor is switched away from unsaved work; false = cancel. */
@@ -52,15 +53,15 @@ export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, o
 
   // Tree of visible lessons. A lesson whose parent is hidden is shown at the top level.
   const visibleNumbers = new Set(visible.map((l) => l.lessonNumber));
-  const childrenOf = new Map<string, Doc<"lessons">[]>();
-  const roots: Doc<"lessons">[] = [];
+  const childrenOf = new Map<string, LessonSummary[]>();
+  const roots: LessonSummary[] = [];
   for (const l of visible) {
     const p = parentNumber(l.lessonNumber);
     if (p && visibleNumbers.has(p)) childrenOf.set(p, [...(childrenOf.get(p) ?? []), l]);
     else roots.push(l);
   }
 
-  const renderTree = (lesson: Doc<"lessons">, depth: number): React.ReactNode => {
+  const renderTree = (lesson: LessonSummary, depth: number): React.ReactNode => {
     const kids = childrenOf.get(lesson.lessonNumber) ?? [];
     const isCollapsed = collapsed.has(lesson._id);
     return (
@@ -73,7 +74,7 @@ export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, o
     );
   };
 
-  const row = (lesson: Doc<"lessons">, depth = 0, childCount = 0, isCollapsed = false) => {
+  const row = (lesson: LessonSummary, depth = 0, childCount = 0, isCollapsed = false) => {
     const isLive = lesson._id === liveLessonId;
     const isEditing = lesson._id === editingLessonId;
     return (

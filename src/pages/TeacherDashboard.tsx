@@ -12,7 +12,8 @@ import {
   SkipForward,
 } from "lucide-react";
 import { api } from "../../convex/_generated/api";
-import type { Doc, Id } from "../../convex/_generated/dataModel";
+import type { Id } from "../../convex/_generated/dataModel";
+import type { LessonSummary } from "../../convex/classroom";
 import { LessonDrawer } from "@/components/LessonDrawer";
 import { LiveEditor, type EditorTarget } from "@/components/LiveEditor";
 import { PollManager } from "@/components/PollManager";
@@ -58,6 +59,16 @@ export function TeacherDashboard({ email }: { email: string | null }) {
   const liveLesson = lessons?.find((l) => l._id === liveLessonId) ?? null;
   const editingLesson =
     targetRef.kind === "lesson" ? (lessons?.find((l) => l._id === targetRef.lessonId) ?? null) : null;
+  // `getLessons` omits bodies; load them only for the lesson being edited and the live one
+  // (identical subscriptions are shared, so editing the live lesson costs one query).
+  const editingLessonDoc = useQuery(
+    api.classroom.getLesson,
+    editingLesson ? { lessonId: editingLesson._id } : "skip",
+  );
+  const liveLessonDoc = useQuery(
+    api.classroom.getLesson,
+    session?.mode === "lesson" && liveLesson ? { lessonId: liveLesson._id } : "skip",
+  );
 
   // ---- Unsaved-changes protection -------------------------------------------
   // The editor reports unsaved work here; anything that would discard it asks first.
@@ -68,7 +79,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
 
   /** Live edits students can see that were never saved into the live lesson's draft. */
   const unsavedLiveEdits =
-    session?.mode === "lesson" && liveLesson && liveSource !== undefined && liveSource !== liveLesson.content
+    session?.mode === "lesson" && liveLesson && liveLessonDoc && liveSource !== undefined && liveSource !== liveLessonDoc.content
       ? `live edits to ${liveLesson.lessonNumber} — ${liveLesson.title} that aren't saved to its draft`
       : null;
 
@@ -104,7 +115,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
     }
   };
 
-  const onPush = (lesson: Doc<"lessons">) => {
+  const onPush = (lesson: LessonSummary) => {
     const leavingEditor = !(targetRef.kind === "lesson" && targetRef.lessonId === lesson._id);
     if (!confirmDiscard(leavingEditor ? editorChanges() : null, unsavedLiveEdits)) return;
     return act(async () => {
@@ -137,7 +148,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
   // ---- Next lesson ---------------------------------------------------------
   // The next pushable lesson (unlocked, not hidden) after the last pushed one, in sidebar
   // order (2 → 2.1 → 2.1.1 → 3). Nothing pushed yet → the first pushable lesson.
-  const pushable = (l: Doc<"lessons">) => !l.isLocked && !l.isHidden;
+  const pushable = (l: LessonSummary) => !l.isLocked && !l.isHidden;
   const liveIndex = lessons && liveLessonId ? lessons.findIndex((l) => l._id === liveLessonId) : -1;
   const nextLesson = lessons ? (lessons.slice(liveIndex + 1).find(pushable) ?? null) : null;
   // Previous: only meaningful once something has been pushed.
@@ -213,17 +224,17 @@ export function TeacherDashboard({ email }: { email: string | null }) {
         initial: liveSource,
         broadcastable: true,
       };
-    } else if (editingLesson) {
+    } else if (editingLessonDoc) {
       editor = {
-        target: { kind: "lesson", lesson: editingLesson },
-        key: `lesson-${editingLesson._id}`,
+        target: { kind: "lesson", lesson: editingLessonDoc },
+        key: `lesson-${editingLessonDoc._id}`,
         // The live lesson opens with what students see (may include unsaved live edits);
         // "Save draft" then stores those edits into the lesson.
         initial:
-          session.mode === "lesson" && liveLessonId === editingLesson._id
+          session.mode === "lesson" && liveLessonId === editingLessonDoc._id
             ? liveSource
-            : editingLesson.content,
-        broadcastable: liveLessonId === editingLesson._id,
+            : editingLessonDoc.content,
+        broadcastable: liveLessonId === editingLessonDoc._id,
       };
     }
   }
