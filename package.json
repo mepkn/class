@@ -11,7 +11,7 @@
     "typecheck": "tsc -b && tsc -p convex --noEmit",
     "seed": "convex run seed:default",
     "setup:auth": "node scripts/setup-auth-keys.mjs --apply",
-    "deploy": "set -a && . ./.env.prod.local && set +a && npx convex deploy --cmd 'npm run build' && rsync -avz --delete -e 'ssh -p 22' dist/ user@your-server:/var/www/class/"
+    "deploy": "export $(cat .env.prod.local) && npx convex deploy --cmd 'npm run build' && rsync -avz --delete -e 'ssh -p 22' dist/ user@your-server:/var/www/class/"
   },
   "dependencies": {
     "@auth/core": "^0.41.3",
