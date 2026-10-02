@@ -32,6 +32,11 @@ export function parentNumber(num: string): string | null {
   return i === -1 ? null : num.slice(0, i);
 }
 
+/** The stored fields for a lesson number. Always write both together. */
+export function lessonNumberFields(num: string): { lessonNumber: string; topLevel: number | undefined } {
+  return { lessonNumber: num, topLevel: parentNumber(num) === null ? Number(num) : undefined };
+}
+
 /** True if `num` is strictly inside `ancestor`'s subtree. */
 export function isDescendant(num: string, ancestor: string): boolean {
   return num.startsWith(ancestor + ".");

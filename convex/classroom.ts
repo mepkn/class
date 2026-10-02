@@ -3,6 +3,7 @@ import { internalMutation, mutation, query, type QueryCtx } from "./_generated/s
 import {
   compareLessonNumbers,
   isDescendant,
+  lessonNumberFields,
   normalizeLessonNumber,
   parentNumber,
   segments,
@@ -219,7 +220,7 @@ export const updateLesson = mutation({
             throw new ConvexError(`Lesson ${m.to} already exists`);
           }
         }
-        for (const m of moves) await ctx.db.patch(m.id, { lessonNumber: m.to });
+        for (const m of moves) await ctx.db.patch(m.id, lessonNumberFields(m.to));
       }
     }
 
@@ -239,23 +240,25 @@ export const createLesson = mutation({
   handler: async (ctx, { parentId }) => {
     await requireTeacher(ctx);
     let prefix = "";
-    let siblings: string[];
+    let lastSegment: number;
     if (parentId) {
       const parent = await ctx.db.get(parentId);
       if (!parent) throw new ConvexError("Parent lesson not found");
       prefix = parent.lessonNumber + ".";
-      siblings = (await descendantsOf(ctx, parent.lessonNumber))
+      const siblings = (await descendantsOf(ctx, parent.lessonNumber))
         .map((l) => l.lessonNumber)
         .filter((n) => parentNumber(n) === parent.lessonNumber);
+      lastSegment = Math.max(0, ...siblings.map((n) => segments(n).at(-1)!));
     } else {
-      siblings = (await ctx.db.query("lessons").collect())
-        .map((l) => l.lessonNumber)
-        .filter((n) => parentNumber(n) === null);
+      const last = await ctx.db.query("lessons").withIndex("by_top_level").order("desc").first();
+      lastSegment = last?.topLevel ?? 0;
     }
-    const lastSegment = Math.max(0, ...siblings.map((n) => segments(n).at(-1)!));
-    const lessonNumber = prefix + (lastSegment + 1);
+    // Guard against lessons written before `topLevel` was backfilled: never reuse a number.
+    let next = lastSegment + 1;
+    while (await lessonByNumber(ctx, prefix + next)) next++;
+    const lessonNumber = prefix + next;
     return await ctx.db.insert("lessons", {
-      lessonNumber,
+      ...lessonNumberFields(lessonNumber),
       title: `Lesson ${lessonNumber}`,
       content: `# Lesson ${lessonNumber}\n\n`,
       isLocked: true,

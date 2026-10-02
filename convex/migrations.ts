@@ -1,4 +1,5 @@
 import { internalMutation } from "./_generated/server";
+import { lessonNumberFields } from "./lib/lessonNumber";
 
 /** One-off: numeric lessonNumber (5) → string ("5"). Safe to re-run. */
 export const lessonNumbersToString = internalMutation({
@@ -27,5 +28,21 @@ export const dropLessonSlideMode = internalMutation({
       }
     }
     return { cleared };
+  },
+});
+
+/** One-off: backfill `topLevel` (used by createLesson's next-number lookup). Safe to re-run. */
+export const backfillTopLevel = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    let updated = 0;
+    for (const lesson of await ctx.db.query("lessons").collect()) {
+      const { topLevel } = lessonNumberFields(lesson.lessonNumber);
+      if (lesson.topLevel !== topLevel) {
+        await ctx.db.patch(lesson._id, { topLevel });
+        updated++;
+      }
+    }
+    return { updated };
   },
 });

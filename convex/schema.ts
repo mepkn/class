@@ -14,7 +14,12 @@ export default defineSchema({
     content: v.string(), // Markdown
     isLocked: v.boolean(), // true = teacher cannot push it to the room yet
     isHidden: v.boolean(), // true = hidden from the teacher's drawer list (archived)
-  }).index("by_number", ["lessonNumber"]),
+    // Top-level lessons only: Number(lessonNumber), so the next number is one index read
+    // (string order puts "10" before "9"). Unset for sub-lessons. See lessonNumberFields().
+    topLevel: v.optional(v.number()),
+  })
+    .index("by_number", ["lessonNumber"])
+    .index("by_top_level", ["topLevel"]),
 
   // SINGLETON: exactly one document, ever
   classroomState: defineTable({

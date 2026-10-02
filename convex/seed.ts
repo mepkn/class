@@ -1,5 +1,6 @@
 import { internalMutation } from "./_generated/server";
 import { ensureRoom } from "./lib/room";
+import { lessonNumberFields } from "./lib/lessonNumber";
 
 const F = "```"; // code fence (kept out of String.raw templates)
 
@@ -194,7 +195,7 @@ export default internalMutation({
       if (existing) continue;
       const data = n <= FULL_LESSONS.length ? FULL_LESSONS[n - 1] : placeholder(n);
       await ctx.db.insert("lessons", {
-        lessonNumber: String(n),
+        ...lessonNumberFields(String(n)),
         title: data.title,
         content: data.content,
         isLocked: n > FULL_LESSONS.length,
