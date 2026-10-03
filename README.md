@@ -97,7 +97,7 @@ accepts both types.
 | `npm run typecheck` | App and `convex/` typecheck |
 | `npm run seed` | Idempotent seed |
 | `npm run setup:auth` | Generate and set `JWT_PRIVATE_KEY` + `JWKS` |
-| `npm run lint` | oxlint |
+| `npm run lint` | ESLint |
 | `npm run check` | Typecheck and lint |
 | `npm run deploy` | Deploys the backend, builds and uploads the site |
 | `npm run deploy:dry` | Same checks, but only previews the deploy and upload |

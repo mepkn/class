@@ -176,7 +176,9 @@ export function LiveEditor({
 
   // Turning auto-sync on (or a lesson becoming live) flushes pending edits.
   const valueRef = useRef(value);
-  valueRef.current = value;
+  useEffect(() => {
+    valueRef.current = value;
+  });
   useEffect(() => {
     if (broadcastable && autoSync && valueRef.current !== lastSent) {
       debouncedSend.run(valueRef.current);

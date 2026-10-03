@@ -29,11 +29,13 @@ export function StudentPollView({ poll, readOnly = false }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // New poll → clear local state.
-  useEffect(() => {
+  // New poll → clear local state (adjusted during render, not in an effect).
+  const [pollId, setPollId] = useState(poll._id);
+  if (pollId !== poll._id) {
+    setPollId(poll._id);
     setSelected(null);
     setError(null);
-  }, [poll._id]);
+  }
 
   const voted = alreadyVoted === true || selected !== null;
   const results = poll.results;
@@ -41,11 +43,9 @@ export function StudentPollView({ poll, readOnly = false }: Props) {
 
   // Mount bars at 0% then grow, so the reveal animates.
   const [barsGrown, setBarsGrown] = useState(false);
+  if (!hasResults && barsGrown) setBarsGrown(false);
   useEffect(() => {
-    if (!hasResults) {
-      setBarsGrown(false);
-      return;
-    }
+    if (!hasResults) return;
     const t = setTimeout(() => setBarsGrown(true), 40);
     return () => clearTimeout(t);
   }, [hasResults]);
