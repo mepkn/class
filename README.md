@@ -3,18 +3,22 @@
 A real-time classroom. One teacher controls what every anonymous student sees: a
 welcome screen, a live Markdown lesson (with KaTeX math and highlighted Python), or a poll.
 
+Live: https://class.pknspace.com
+
+## Features
+
 - **Students** open `/`. They don't log in and there's no navigation. They follow the
   teacher's screen live.
 - **The teacher** opens `/teacher`, signs in with email and password (allowlisted), and
   runs the Command Center.
 
-Stack: React 19, Vite, TypeScript (strict), Tailwind v4, shadcn/ui, Convex (reactive
+## Stack
+
+React 19, Vite, TypeScript (strict), Tailwind v4, shadcn/ui, Convex (reactive
 queries only), `@convex-dev/auth` (Password provider), react-markdown, KaTeX,
 highlight.js, and `@uiw/react-md-editor`.
 
----
-
-## Local setup (no cloud, no Docker)
+## Development
 
 Development uses a **Convex local deployment**: the open-source backend binary runs on
 your machine with SQLite. You don't need a Convex account. Requires Node 20+.
@@ -83,32 +87,6 @@ Upgrading a database from before nesting existed (numeric `lessonNumber`) needs 
 migration: `npx convex run migrations:lessonNumbersToString`. Run it while the schema still
 accepts both types.
 
----
-
-## Deploying to production
-
-The code is the same for dev and prod; only environment variables differ.
-
-1. Create a Convex cloud project. **This is the only step that uses the cloud.** Run
-   `npx convex login`, then generate a **production deploy key** in the Convex dashboard.
-2. Set the Convex-side env vars on the **production** deployment:
-   ```bash
-   node scripts/setup-auth-keys.mjs --apply --prod
-   npx convex env set --prod SITE_URL https://your-app.vercel.app
-   npx convex env set --prod TEACHER_EMAILS you@school.edu
-   ```
-3. In Vercel or Netlify:
-   - Set the env var `CONVEX_DEPLOY_KEY=<production deploy key>`.
-   - Set the build command to `npx convex deploy --cmd 'npm run build'`. This injects
-     `VITE_CONVEX_URL` for you.
-   - Set the output directory to `dist`.
-   - Add an SPA fallback so `/teacher` resolves to `index.html`. On Vercel, the rewrite is
-     `{ "source": "/(.*)", "destination": "/" }`.
-4. Seed production once: `npx convex run --prod seed:default`. Then create the teacher
-   account at `/teacher`.
-
----
-
 ## Scripts
 
 | Command | What it does |
@@ -119,6 +97,37 @@ The code is the same for dev and prod; only environment variables differ.
 | `npm run typecheck` | App and `convex/` typecheck |
 | `npm run seed` | Idempotent seed |
 | `npm run setup:auth` | Generate and set `JWT_PRIVATE_KEY` + `JWKS` |
+| `npm run lint` | oxlint |
+| `npm run check` | Typecheck and lint |
+| `npm run deploy` | Deploys the backend, builds and uploads the site |
+| `npm run deploy:dry` | Same checks, but only previews the deploy and upload |
+
+## Deployment
+
+Production runs on a Convex cloud deployment (backend) plus a VPS where Caddy serves the
+static `dist/` (no restart needed). `npm run deploy` does both.
+
+One-time setup:
+
+1. Create a Convex cloud project and generate a **production deploy key** in the dashboard.
+2. Copy the production section of `.env.example` into `.env.prod.local` (git-ignored) and
+   fill in `CONVEX_DEPLOY_KEY`, `DEPLOY_HOST`, `DEPLOY_PORT` and `DEPLOY_DIR`. You also need
+   SSH key access to the server.
+3. Set the Convex-side env vars on the **production** deployment:
+   ```bash
+   node scripts/setup-auth-keys.mjs --apply --prod
+   npx convex env set --prod SITE_URL https://class.pknspace.com
+   npx convex env set --prod TEACHER_EMAILS you@school.edu
+   ```
+4. Seed production once: `npx convex run --prod seed:default`. Then create the teacher
+   account at `/teacher`.
+
+Deploy:
+
+```bash
+npm run deploy:dry   # checks, then preview the backend push and the upload
+npm run deploy       # checks, deploy convex/, build with the production URL, upload
+```
 
 ## How it works
 
