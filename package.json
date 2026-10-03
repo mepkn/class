@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -b && tsc -p convex --noEmit",
     "seed": "convex run seed:default",
-    "setup:auth": "node scripts/setup-auth-keys.mjs --apply",
+    "setup:auth": "node scripts/setup-auth-keys.ts --apply",
     "deploy": "scripts/deploy.sh",
     "check": "npm run typecheck && npm run lint",
     "deploy:dry": "DRY_RUN=1 scripts/deploy.sh"
@@ -56,6 +56,6 @@
     "vite": "^8.3.0"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.18"
   }
 }

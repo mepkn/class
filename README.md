@@ -115,7 +115,7 @@ One-time setup:
    SSH key access to the server.
 3. Set the Convex-side env vars on the **production** deployment:
    ```bash
-   node scripts/setup-auth-keys.mjs --apply --prod
+   node scripts/setup-auth-keys.ts --apply --prod
    npx convex env set --prod SITE_URL https://class.pknspace.com
    npx convex env set --prod TEACHER_EMAILS you@school.edu
    ```

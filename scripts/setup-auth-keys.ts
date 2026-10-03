@@ -1,10 +1,9 @@
-#!/usr/bin/env node
 /**
  * Generates the RS256 key pair that @convex-dev/auth needs (JWT_PRIVATE_KEY + JWKS).
  *
- *   node scripts/setup-auth-keys.mjs           # print the values
- *   node scripts/setup-auth-keys.mjs --apply   # set them on the current deployment
- *   node scripts/setup-auth-keys.mjs --apply --prod   # ...on the production deployment
+ *   node scripts/setup-auth-keys.ts           # print the values
+ *   node scripts/setup-auth-keys.ts --apply   # set them on the current deployment
+ *   node scripts/setup-auth-keys.ts --apply --prod   # ...on the production deployment
  *
  * Values are piped to `npx convex env set` via stdin, so they never appear in
  * shell history or process arguments.
@@ -32,10 +31,11 @@ if (!apply) {
 }
 
 const npx = process.platform === "win32" ? "npx.cmd" : "npx";
-for (const [name, value] of [
+const vars: [name: string, value: string][] = [
   ["JWT_PRIVATE_KEY", JWT_PRIVATE_KEY],
   ["JWKS", JWKS],
-]) {
+];
+for (const [name, value] of vars) {
   const args = ["convex", "env", "set", ...(prod ? ["--prod"] : []), name];
   execFileSync(npx, args, { input: value, stdio: ["pipe", "inherit", "inherit"] });
 }
