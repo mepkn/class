@@ -21,7 +21,7 @@ highlight.js, and `@uiw/react-md-editor`.
 ## Development
 
 Development uses a **Convex local deployment**: the open-source backend binary runs on
-your machine with SQLite. You don't need a Convex account. Requires Node 20+.
+your machine with SQLite. You don't need a Convex account. Requires Node 22.18+ (`.nvmrc` pins 22).
 
 ```bash
 npm install
@@ -143,5 +143,7 @@ npm run deploy       # checks, deploy convex/, build with the production URL, up
 - **Security.** Every teacher query and mutation calls `requireTeacher(ctx)`. It checks that
   the caller is signed in and that their email is in `TEACHER_EMAILS`. User-facing errors
   are thrown as `ConvexError`, so their messages also reach the client in production.
+- **UI.** shadcn/ui components live in `src/components/ui/` (vendored, added with `npx shadcn add`, not linted).
+- **Tests.** The pure helpers in `convex/lib/` (lesson numbers, slides, presenter notes) have Vitest tests next to them; Convex skips `*.test.ts` files when deploying.
 - **Rendering safety.** Raw HTML is skipped. KaTeX runs with `throwOnError: false`, and an
   ErrorBoundary falls back to the raw Markdown, resetting when the content changes.
