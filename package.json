@@ -12,8 +12,9 @@
     "seed": "convex run seed:default",
     "setup:auth": "node scripts/setup-auth-keys.ts --apply",
     "deploy": "scripts/deploy.sh",
-    "check": "npm run typecheck && npm run lint",
-    "deploy:dry": "DRY_RUN=1 scripts/deploy.sh"
+    "check": "npm run typecheck && npm run lint && npm run test",
+    "deploy:dry": "DRY_RUN=1 scripts/deploy.sh",
+    "test": "vitest run"
   },
   "dependencies": {
     "@auth/core": "^0.41.3",
@@ -58,7 +59,8 @@
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.71.0",
-    "vite": "^8.3.0"
+    "vite": "^8.3.0",
+    "vitest": "^5.0.3"
   },
   "engines": {
     "node": ">=22.18"

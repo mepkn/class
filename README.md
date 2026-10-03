@@ -98,7 +98,8 @@ accepts both types.
 | `npm run seed` | Idempotent seed |
 | `npm run setup:auth` | Generate and set `JWT_PRIVATE_KEY` + `JWKS` |
 | `npm run lint` | ESLint |
-| `npm run check` | Typecheck and lint |
+| `npm test` | Unit tests (Vitest): lesson numbers, slides, presenter notes, error messages |
+| `npm run check` | Typecheck, lint and tests |
 | `npm run deploy` | Deploys the backend, builds and uploads the site |
 | `npm run deploy:dry` | Same checks, but only previews the deploy and upload |
 
