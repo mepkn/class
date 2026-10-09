@@ -19,7 +19,9 @@ import { LiveEditor, type EditorTarget } from "@/components/LiveEditor";
 import { PollManager } from "@/components/PollManager";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StudentStage } from "@/components/StudentStage";
+import { Hint } from "@/components/Hint";
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { BOARD_COLORS } from "../../convex/lib/boardColors";
@@ -272,16 +274,17 @@ export function TeacherDashboard({ email }: { email: string | null }) {
           >
             <SidebarInset className="h-svh min-h-0 min-w-0">
               <header className="flex flex-wrap items-center gap-2 border-b bg-card/60 px-3 py-2.5">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8"
-                  onClick={left.toggleSidebar}
-                  title="Toggle lessons (⌘/Ctrl+B)"
-                  aria-label="Toggle lessons sidebar"
-                >
-                  <PanelLeft />
-                </Button>
+                <Hint label="Toggle lessons (⌘/Ctrl+B)">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8"
+                    onClick={left.toggleSidebar}
+                    aria-label="Toggle lessons sidebar"
+                  >
+                    <PanelLeft />
+                  </Button>
+                </Hint>
                 <div className="flex min-w-[10rem] flex-1 items-center gap-1">
                   <StatusBadge
                     mode={session?.mode}
@@ -317,9 +320,9 @@ export function TeacherDashboard({ email }: { email: string | null }) {
               {actionError && (
                 <div className="flex items-center justify-between bg-destructive/15 px-4 py-1.5 text-sm text-destructive">
                   {actionError}
-                  <button type="button" className="underline" onClick={() => setActionError(null)}>
+                  <Button variant="link" size="sm" className="h-auto p-0 text-destructive underline" onClick={() => setActionError(null)}>
                     Dismiss
-                  </button>
+                  </Button>
                 </div>
               )}
 
@@ -392,31 +395,33 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                       className="teach-fab absolute right-3 z-30 flex items-center gap-0.5 rounded-full border bg-card/95 p-1 shadow-lg backdrop-blur sm:right-5 [&_svg]:size-4"
                       aria-label="Slides"
                     >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 rounded-full"
-                        disabled={slide.index === 0}
-                        onClick={() => goSlide(-1)}
-                        title="Previous slide (←)"
-                        aria-label="Previous slide"
-                      >
-                        <ChevronLeft />
-                      </Button>
+                      <Hint label="Previous slide (←)">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 rounded-full"
+                          disabled={slide.index === 0}
+                          onClick={() => goSlide(-1)}
+                          aria-label="Previous slide"
+                        >
+                          <ChevronLeft />
+                        </Button>
+                      </Hint>
                       <span className="min-w-10 px-0.5 text-center text-xs tabular-nums text-muted-foreground">
                         {slide.index + 1} / {slide.count}
                       </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 rounded-full"
-                        disabled={slide.index === slide.count - 1}
-                        onClick={() => goSlide(1)}
-                        title="Next slide (→)"
-                        aria-label="Next slide"
-                      >
-                        <ChevronRight />
-                      </Button>
+                      <Hint label="Next slide (→)">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 rounded-full"
+                          disabled={slide.index === slide.count - 1}
+                          onClick={() => goSlide(1)}
+                          aria-label="Next slide"
+                        >
+                          <ChevronRight />
+                        </Button>
+                      </Hint>
                     </div>
                   )}
                 </>
@@ -459,28 +464,28 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                           · {BOARD_COLORS.find((c) => c.id === (session?.boardColor ?? "green"))?.label}
                         </span>
                       </p>
-                      <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Board color">
-                        {BOARD_COLORS.map((c) => {
-                          const selected = (session?.boardColor ?? "green") === c.id;
-                          return (
-                            <button
-                              key={c.id}
-                              type="button"
-                              role="radio"
-                              aria-checked={selected}
+                      <ToggleGroup
+                        type="single"
+                        spacing={2}
+                        aria-label="Board color"
+                        value={session?.boardColor ?? "green"}
+                        disabled={session === undefined}
+                        // Ignore the empty value Radix sends when the selected swatch is clicked again.
+                        onValueChange={(color) => color && act(() => setBoardColor({ color: color as (typeof BOARD_COLORS)[number]["id"] }))}
+                        className="mt-2 flex flex-wrap justify-start gap-2"
+                      >
+                        {BOARD_COLORS.map((c) => (
+                          // Styled via aria-checked: the Tooltip trigger overwrites data-state.
+                          <Hint key={c.id} label={c.label}>
+                            <ToggleGroupItem
+                              value={c.id}
                               aria-label={c.label}
-                              title={c.label}
-                              disabled={session === undefined}
-                              onClick={() => !selected && act(() => setBoardColor({ color: c.id }))}
-                              className={cn(
-                                "size-8 rounded-full border border-white/20 transition hover:scale-110",
-                                selected && "ring-2 ring-primary ring-offset-2 ring-offset-sidebar",
-                              )}
+                              className="size-8 min-w-0 flex-none rounded-full border border-white/20 p-0 transition hover:scale-110 aria-checked:ring-2 aria-checked:ring-primary aria-checked:ring-offset-2 aria-checked:ring-offset-sidebar"
                               style={{ background: c.value }}
                             />
-                          );
-                        })}
-                      </div>
+                          </Hint>
+                        ))}
+                      </ToggleGroup>
                     </div>
                     <div className="rounded-lg border px-3 py-2">
                       <p className="text-sm font-medium">
@@ -489,39 +494,27 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                           How each → step shows <code>---</code> slides, for every lesson
                         </span>
                       </p>
-                      <div
-                        className="mt-2 flex rounded-md border p-0.5 text-xs"
-                        role="radiogroup"
+                      <ToggleGroup
+                        type="single"
+                        variant="outline"
+                        size="sm"
                         aria-label="How slides advance"
+                        value={session?.slideMode ?? "build"}
+                        disabled={session === undefined}
+                        onValueChange={(mode) => mode && act(() => setSlideMode({ mode: mode as "build" | "replace" }))}
+                        className="mt-2 w-full"
                       >
                         {(
                           [
                             ["build", "Build-up", "Each step adds the next slide below the previous ones"],
                             ["replace", "Replace", "Each step shows only the next slide"],
                           ] as const
-                        ).map(([mode, label, hint]) => {
-                          const selected = (session?.slideMode ?? "build") === mode;
-                          return (
-                            <button
-                              key={mode}
-                              type="button"
-                              role="radio"
-                              aria-checked={selected}
-                              title={hint}
-                              disabled={session === undefined}
-                              onClick={() => !selected && act(() => setSlideMode({ mode }))}
-                              className={cn(
-                                "flex-1 rounded px-2 py-1 disabled:cursor-not-allowed disabled:opacity-50",
-                                selected
-                                  ? "bg-secondary font-medium text-foreground"
-                                  : "text-muted-foreground hover:text-foreground",
-                              )}
-                            >
-                              {label}
-                            </button>
-                          );
-                        })}
-                      </div>
+                        ).map(([mode, label, hint]) => (
+                          <ToggleGroupItem key={mode} value={mode} title={hint} className="flex-1 text-xs data-[state=on]:font-medium">
+                            {label}
+                          </ToggleGroupItem>
+                        ))}
+                      </ToggleGroup>
                     </div>
                   </TabsContent>
                   <TabsContent value="poll" className="mt-0">
@@ -567,16 +560,17 @@ function WithSidebar({ children }: { children: (ctx: ReturnType<typeof useSideba
 function RightSidebarTrigger() {
   const { toggleSidebar } = useSidebar();
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="size-8"
-      onClick={toggleSidebar}
-      title="Toggle monitor & polls (⌘/Ctrl+.)"
-      aria-label="Toggle monitor and polls sidebar"
-    >
-      <PanelRight />
-    </Button>
+    <Hint label="Toggle monitor & polls (⌘/Ctrl+.)">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="size-8"
+        onClick={toggleSidebar}
+        aria-label="Toggle monitor and polls sidebar"
+      >
+        <PanelRight />
+      </Button>
+    </Hint>
   );
 }
 

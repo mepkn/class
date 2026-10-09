@@ -6,6 +6,7 @@ import rehypeKatex from "rehype-katex";
 import rehypeHighlight from "rehype-highlight";
 import { Check, Copy, TriangleAlert } from "lucide-react";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const remarkPlugins = [remarkGfm, remarkMath];
@@ -44,15 +45,16 @@ function CodeBlock({ node, children, ...rest }: ComponentProps<"pre"> & ExtraPro
     <div className="not-prose group relative my-5 overflow-hidden rounded-lg border border-white/10 bg-[#0d1117]">
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-1.5 text-xs text-zinc-400">
         <span className="font-mono uppercase tracking-wide">{lang ?? "code"}</span>
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={copy}
-          className="flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-white/10 hover:text-zinc-100"
+          className="h-6 gap-1 px-1.5 text-xs font-normal text-zinc-400 hover:bg-white/10 hover:text-zinc-100 [&_svg]:size-3.5"
           aria-label="Copy code"
         >
-          {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+          {copied ? <Check /> : <Copy />}
           {copied ? "Copied" : "Copy"}
-        </button>
+        </Button>
       </div>
       <pre
         ref={preRef}

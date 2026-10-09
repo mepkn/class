@@ -71,16 +71,17 @@ export function TeacherLogin() {
               {pending && <Loader2 className="animate-spin" />}
               {flow === "signIn" ? "Sign in" : "Create account"}
             </Button>
-            <button
+            <Button
               type="button"
-              className="w-full text-center text-sm text-muted-foreground underline-offset-4 hover:underline"
+              variant="link"
+              className="w-full font-normal text-muted-foreground"
               onClick={() => {
                 setFlow(flow === "signIn" ? "signUp" : "signIn");
                 setError(null);
               }}
             >
               {flow === "signIn" ? "First time? Create the teacher account" : "Already have an account? Sign in"}
-            </button>
+            </Button>
           </form>
         </CardContent>
       </Card>

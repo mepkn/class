@@ -21,6 +21,7 @@ import { MarkdownRenderer } from "./MarkdownRenderer";
 import { showPresenterNotes } from "../../convex/lib/presenterNotes";
 import { splitSlides } from "../../convex/lib/slides";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -229,7 +230,7 @@ export function LiveEditor({
               </p>
             ) : (
               <div className="flex items-center gap-1.5 text-sm font-medium">
-                <input
+                <Input
                   key={`num-${target.lesson.lessonNumber}`}
                   defaultValue={target.lesson.lessonNumber}
                   maxLength={40}
@@ -237,7 +238,7 @@ export function LiveEditor({
                   aria-label="Lesson number"
                   readOnly={readOnly}
                   title="Edit the number. Sub-lessons move with it (e.g. 1 → 3 turns 1.2 into 3.2)."
-                  className="w-16 shrink-0 rounded border border-transparent bg-transparent px-1 font-mono hover:border-input focus:border-input focus:outline-none"
+                  className="w-16 shrink-0 font-mono h-auto rounded border-transparent bg-transparent px-1 py-0 text-sm shadow-none hover:border-input focus-visible:border-input focus-visible:ring-0 md:text-sm"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") e.currentTarget.blur();
                     if (e.key === "Escape") {
@@ -268,13 +269,13 @@ export function LiveEditor({
                   }}
                 />
                 <span className="shrink-0">—</span>
-                <input
+                <Input
                   key={target.lesson.title}
                   defaultValue={target.lesson.title}
                   maxLength={200}
                   aria-label="Lesson title"
                   readOnly={readOnly}
-                  className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 hover:border-input focus:border-input focus:outline-none"
+                  className="min-w-0 flex-1 font-medium h-auto rounded border-transparent bg-transparent px-1 py-0 text-sm shadow-none hover:border-input focus-visible:border-input focus-visible:ring-0 md:text-sm"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") e.currentTarget.blur();
                     if (e.key === "Escape") {

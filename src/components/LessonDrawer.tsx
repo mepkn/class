@@ -6,7 +6,20 @@ import type { Id } from "../../convex/_generated/dataModel";
 import type { LessonSummary } from "../../convex/classroom";
 import { errorMessage } from "@/lib/errorMessage";
 import { parentNumber } from "../../convex/lib/lessonNumber";
+import { Hint } from "@/components/Hint";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sidebar, SidebarContent, SidebarHeader } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
@@ -94,22 +107,23 @@ export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, o
       >
         <div className="flex items-start gap-1">
         {childCount > 0 ? (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => toggleCollapsed(lesson._id)}
-            className="mt-0.5 shrink-0 rounded text-muted-foreground hover:text-foreground"
+            className="mt-0.5 size-4 shrink-0 text-muted-foreground hover:bg-transparent hover:text-foreground"
             aria-label={isCollapsed ? `Expand ${childCount} sub-lessons` : "Collapse sub-lessons"}
             aria-expanded={!isCollapsed}
           >
-            {isCollapsed ? <ChevronRight className="size-4" /> : <ChevronDown className="size-4" />}
-          </button>
+            {isCollapsed ? <ChevronRight /> : <ChevronDown />}
+          </Button>
         ) : (
           <span className="w-4 shrink-0" />
         )}
-        <button
-          type="button"
+        <Button
+          variant="ghost"
           onClick={() => onOpen(lesson)}
-          className="flex w-full items-start gap-2 text-left"
+          className="h-auto min-w-0 flex-1 items-start justify-start gap-2 p-0 text-left font-normal whitespace-normal hover:bg-transparent"
           title="Open in editor"
         >
           <span className="mt-0.5 shrink-0 font-mono text-xs text-muted-foreground">
@@ -124,71 +138,86 @@ export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, o
           {isCollapsed && (
             <span className="shrink-0 text-[10px] text-muted-foreground">+{childCount}</span>
           )}
-        </button>
+        </Button>
         </div>
         <div className="mt-1.5 flex items-center gap-1 pl-5">
           {!isLive && !readOnly && (
             <>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7"
-                title={lesson.isLocked ? "Unlock lesson" : "Lock lesson"}
-                aria-label={lesson.isLocked ? "Unlock lesson" : "Lock lesson"}
-                onClick={() => updateLesson({ lessonId: lesson._id, isLocked: !lesson.isLocked })}
-              >
-                {lesson.isLocked ? <Lock className="text-amber-300" /> : <LockOpen />}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7"
-                title={lesson.isHidden ? "Unhide lesson" : "Hide lesson"}
-                aria-label={lesson.isHidden ? "Unhide lesson" : "Hide lesson"}
-                onClick={() => updateLesson({ lessonId: lesson._id, isHidden: !lesson.isHidden })}
-              >
-                {lesson.isHidden ? <EyeOff /> : <Eye />}
-              </Button>
+              <Hint label={lesson.isLocked ? "Unlock lesson" : "Lock lesson"}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  aria-label={lesson.isLocked ? "Unlock lesson" : "Lock lesson"}
+                  onClick={() => updateLesson({ lessonId: lesson._id, isLocked: !lesson.isLocked })}
+                >
+                  {lesson.isLocked ? <Lock className="text-amber-300" /> : <LockOpen />}
+                </Button>
+              </Hint>
+              <Hint label={lesson.isHidden ? "Unhide lesson" : "Hide lesson"}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  aria-label={lesson.isHidden ? "Unhide lesson" : "Hide lesson"}
+                  onClick={() => updateLesson({ lessonId: lesson._id, isHidden: !lesson.isHidden })}
+                >
+                  {lesson.isHidden ? <EyeOff /> : <Eye />}
+                </Button>
+              </Hint>
             </>
           )}
           {!readOnly && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7"
-              title={`Add sub-lesson under ${lesson.lessonNumber}`}
-              aria-label={`Add sub-lesson under ${lesson.lessonNumber}`}
-              onClick={() =>
-                confirmLeaveEditor() &&
-                guard(async () => {
-                  const id = await createLesson({ parentId: lesson._id });
-                  setCollapsed((prev) => {
-                    const next = new Set(prev);
-                    next.delete(lesson._id);
-                    return next;
-                  });
-                  onCreated(id);
-                })
-              }
-            >
-              <ListPlus />
-            </Button>
+            <Hint label={`Add sub-lesson under ${lesson.lessonNumber}`}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                aria-label={`Add sub-lesson under ${lesson.lessonNumber}`}
+                onClick={() =>
+                  confirmLeaveEditor() &&
+                  guard(async () => {
+                    const id = await createLesson({ parentId: lesson._id });
+                    setCollapsed((prev) => {
+                      const next = new Set(prev);
+                      next.delete(lesson._id);
+                      return next;
+                    });
+                    onCreated(id);
+                  })
+                }
+              >
+                <ListPlus />
+              </Button>
+            </Hint>
           )}
           {!isLive && !readOnly && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7 hover:text-destructive"
-              title="Delete lesson"
-              aria-label="Delete lesson"
-              onClick={() => {
-                if (window.confirm(`Delete lesson ${lesson.lessonNumber} — "${lesson.title}"?\n\nThis can't be undone.`)) {
-                  void guard(() => deleteLesson({ lessonId: lesson._id }));
-                }
-              }}
-            >
-              <Trash2 />
-            </Button>
+            <AlertDialog>
+              <Hint label="Delete lesson">
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="size-7 hover:text-destructive" aria-label="Delete lesson">
+                    <Trash2 />
+                  </Button>
+                </AlertDialogTrigger>
+              </Hint>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    Delete lesson {lesson.lessonNumber} — “{lesson.title}”?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>This can't be undone.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    variant="destructive"
+                    onClick={() => void guard(() => deleteLesson({ lessonId: lesson._id }))}
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
           {!isLive && (
             <Button
@@ -239,18 +268,21 @@ export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, o
           <>
             <ul className="space-y-1">{roots.map((l) => renderTree(l, 0))}</ul>
             {hidden.length > 0 && (
-              <div className="mt-3 border-t pt-2">
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-1 px-2 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowHidden((s) => !s)}
-                  aria-expanded={showHidden}
-                >
-                  {showHidden ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-                  Show hidden ({hidden.length})
-                </button>
-                {showHidden && <ul className="mt-1 space-y-1">{hidden.map((l) => row(l))}</ul>}
-              </div>
+              <Collapsible open={showHidden} onOpenChange={setShowHidden} className="mt-3 border-t pt-2">
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto w-full justify-start gap-1 px-2 py-1 text-xs font-medium tracking-wide text-muted-foreground uppercase hover:bg-transparent hover:text-foreground"
+                  >
+                    {showHidden ? <ChevronDown /> : <ChevronRight />}
+                    Show hidden ({hidden.length})
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent asChild>
+                  <ul className="mt-1 space-y-1">{hidden.map((l) => row(l))}</ul>
+                </CollapsibleContent>
+              </Collapsible>
             )}
           </>
         )}
