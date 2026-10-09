@@ -4,6 +4,8 @@ import { BrowserRouter } from "react-router-dom";
 import { ConvexReactClient } from "convex/react";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import App from "./App";
+import "@fontsource-variable/geist"
+import "@fontsource-variable/geist-mono"
 import "./index.css";
 
 const convexUrl = import.meta.env.VITE_CONVEX_URL as string | undefined;
