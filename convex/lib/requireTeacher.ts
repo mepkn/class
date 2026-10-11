@@ -5,7 +5,7 @@ import type { Doc } from "../_generated/dataModel";
 import { isTeacherEmail } from "./teachers";
 
 /**
- * Throws unless the caller is signed in AND their email is in TEACHER_EMAILS.
+ * Throws unless the caller is signed in AND their email is in ALLOWED_EMAILS.
  * Every teacher query/mutation must call this first.
  * (MutationCtx extends QueryCtx, so this works for both.)
  */

@@ -8,7 +8,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
     Password({
       // Runs for every flow. Rejecting non-allowlisted emails here means
-      // nobody outside TEACHER_EMAILS can sign up (or sign in).
+      // nobody outside ALLOWED_EMAILS can sign up (or sign in).
       profile(params) {
         const email = String(params.email ?? "").trim().toLowerCase();
         if (!isTeacherEmail(email)) {

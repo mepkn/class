@@ -26,7 +26,7 @@ your machine with SQLite. You don't need a Convex account. Requires Node 22.18+ 
 ```bash
 npm install
 npx convex dev            # choose "start without an account" (local). Keep it running.
-npm run setup:auth && npx convex env set SITE_URL http://localhost:5173 && npx convex env set TEACHER_EMAILS you@school.edu && npm run seed
+npm run setup:auth && npx convex env set SITE_URL http://localhost:5173 && npx convex env set ALLOWED_EMAILS you@school.edu && npm run seed
 npm run dev               # second terminal → http://localhost:5173
 ```
 
@@ -38,12 +38,12 @@ Once `npm install` has run, everything works offline.
 
 ### Creating the teacher account
 
-1. Make sure your email is in the allowlist: `npx convex env set TEACHER_EMAILS you@school.edu`
+1. Make sure your email is in the allowlist: `npx convex env set ALLOWED_EMAILS you@school.edu`
    (comma-separate multiple teachers).
 2. Open http://localhost:5173/teacher and choose **"First time? Create the teacher
    account"**. Enter that email and a password of at least 8 characters.
 
-Sign-up is rejected for any email that isn't in `TEACHER_EMAILS`. If you remove an email
+Sign-up is rejected for any email that isn't in `ALLOWED_EMAILS`. If you remove an email
 from the list later, that user sees **Access denied**, and every teacher function throws
 for them.
 
@@ -118,7 +118,7 @@ One-time setup:
    ```bash
    node scripts/setup-auth-keys.ts --apply --prod
    npx convex env set --prod SITE_URL https://class.pknspace.com
-   npx convex env set --prod TEACHER_EMAILS you@school.edu
+   npx convex env set --prod ALLOWED_EMAILS you@school.edu
    ```
 4. Seed production once: `npx convex run --prod seed:default`. Then create the teacher
    account at `/teacher`.
@@ -141,7 +141,7 @@ npm run deploy       # checks, deploy convex/, build with the production URL, up
   it. The server enforces one vote per `(pollId, voterToken)` and rejects votes once results
   are revealed.
 - **Security.** Every teacher query and mutation calls `requireTeacher(ctx)`. It checks that
-  the caller is signed in and that their email is in `TEACHER_EMAILS`. User-facing errors
+  the caller is signed in and that their email is in `ALLOWED_EMAILS`. User-facing errors
   are thrown as `ConvexError`, so their messages also reach the client in production.
 - **UI.** shadcn/ui components live in `src/components/ui/` (vendored, added with `npx shadcn add`, not linted).
 - **Tests.** The pure helpers in `convex/lib/` (lesson numbers, slides, presenter notes) have Vitest tests next to them; Convex skips `*.test.ts` files when deploying.
