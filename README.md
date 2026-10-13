@@ -24,14 +24,14 @@ Development uses a **Convex local deployment**: the open-source backend binary r
 your machine with SQLite. You don't need a Convex account. Requires Node 22.18+ (`.nvmrc` pins 22).
 
 ```bash
-npm install && npm run web:install
+cd backend && npm install
 npx convex dev            # choose "start without an account" (local). Keep it running.
 npm run setup:auth && npx convex env set SITE_URL http://localhost:5173 && npx convex env set ALLOWED_EMAILS you@school.edu && npm run seed
-npm run dev               # second terminal → http://localhost:5173
+cd ../web && npm install && npm run dev   # second terminal → http://localhost:5173
 ```
 
 For non-interactive runs (CI or agents), use `CONVEX_AGENT_MODE=anonymous npx convex dev`
-to skip the prompt. `npx convex dev` writes `.env.local` (`CONVEX_DEPLOYMENT`,
+to skip the prompt. `npx convex dev` writes `backend/.env.local` (`CONVEX_DEPLOYMENT`,
 `VITE_CONVEX_URL=http://127.0.0.1:3210`, `VITE_CONVEX_SITE_URL`). See `.env.example`.
 
 Once `npm install` has run, everything works offline.
@@ -49,6 +49,8 @@ for them.
 
 ### Seeding
 
+Run these, and the other `npx convex` commands, in `backend/`.
+
 ```bash
 npm run seed              # = npx convex run seed:default
 ```
@@ -65,7 +67,7 @@ npx convex run seed:reset && npm run seed   # wipe lessons/polls/votes/room, kee
 To wipe **everything**, including teacher accounts:
 
 1. Stop `npx convex dev`.
-2. Delete `.convex/local/` in this project.
+2. Delete `backend/.convex/local/`.
 3. Run `npx convex dev` again.
 4. Repeat the env and seed commands above.
 
@@ -91,23 +93,22 @@ accepts both types.
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | Vite dev server (http://localhost:5173) |
-| `npx convex dev` | Local Convex backend and function hot-reload |
-| `npm run web:install` | Installs the web app's dependencies (`web/` has its own `package.json`) |
-| `npm run build` | Typecheck and production build of the web app (`web/dist/`) |
-| `npm run typecheck` | `convex/` typecheck (the web app is typechecked by `check`) |
-| `npm run seed` | Idempotent seed |
-| `npm run setup:auth` | Generate and set `JWT_PRIVATE_KEY` + `JWKS` |
-| `npm run lint` | ESLint |
-| `npm test` | Backend unit tests (Vitest): lesson numbers, slides, presenter notes |
-| `npm run check` | Typecheck, lint and tests for the backend, then for `web/` (incl. error-message tests) |
-| `npm run deploy` | Deploys the backend, builds and uploads the site |
-| `npm run deploy:dry` | Same checks, but only previews the deploy and upload |
+| `npm run dev` (`web/`) | Vite dev server (http://localhost:5173) |
+| `npm run build` (`web/`) | Typecheck and production build (`web/dist/`) |
+| `npm run check` (`web/`) | Typecheck, lint and tests (incl. error-message tests) |
+| `npm run dev` (`backend/`) | Local Convex backend and function hot-reload |
+| `npm run seed` (`backend/`) | Idempotent seed |
+| `npm run setup:auth` (`backend/`) | Generate and set `JWT_PRIVATE_KEY` + `JWKS` |
+| `npm test` (`backend/`) | Backend unit tests (Vitest): lesson numbers, slides, presenter notes |
+| `npm run check` (`backend/`) | Typecheck, lint and tests |
+| `scripts/check.sh` | Every part's `check`; run before committing |
+| `scripts/deploy.sh` | Deploys the backend, builds and uploads the site |
+| `DRY_RUN=1 scripts/deploy.sh` | Same checks, but only previews the deploy and upload |
 
 ## Deployment
 
 Production runs on a Convex cloud deployment (backend) plus a VPS where Caddy serves the
-static `web/dist/` (no restart needed). `npm run deploy` does both.
+static `web/dist/` (no restart needed). `scripts/deploy.sh` does both.
 
 One-time setup:
 
@@ -115,7 +116,7 @@ One-time setup:
 2. Copy the production section of `.env.example` into `.env.prod.local` (git-ignored) and
    fill in `CONVEX_DEPLOY_KEY`, `DEPLOY_HOST`, `DEPLOY_PORT` and `DEPLOY_DIR`. You also need
    SSH key access to the server.
-3. Set the Convex-side env vars on the **production** deployment:
+3. Set the Convex-side env vars on the **production** deployment (in `backend/`):
    ```bash
    node scripts/setup-auth-keys.ts --apply --prod
    npx convex env set --prod SITE_URL https://class.pknspace.com
@@ -127,8 +128,8 @@ One-time setup:
 Deploy:
 
 ```bash
-npm run deploy:dry   # checks, then preview the backend push and the upload
-npm run deploy       # checks, deploy convex/, build with the production URL, upload
+DRY_RUN=1 scripts/deploy.sh   # checks, then preview the backend push and the upload
+scripts/deploy.sh             # checks, deploy backend/convex/, build with the production URL, upload
 ```
 
 ## How it works
@@ -145,6 +146,6 @@ npm run deploy       # checks, deploy convex/, build with the production URL, up
   the caller is signed in and that their email is in `ALLOWED_EMAILS`. User-facing errors
   are thrown as `ConvexError`, so their messages also reach the client in production.
 - **UI.** shadcn/ui components live in `web/src/components/ui/` (vendored, added with `npx shadcn add`, not linted).
-- **Tests.** The pure helpers in `convex/lib/` (lesson numbers, slides, presenter notes) have Vitest tests next to them; Convex skips `*.test.ts` files when deploying.
+- **Tests.** The pure helpers in `backend/convex/lib/` (lesson numbers, slides, presenter notes) have Vitest tests next to them; Convex skips `*.test.ts` files when deploying.
 - **Rendering safety.** Raw HTML is skipped. KaTeX runs with `throwOnError: false`, and an
   ErrorBoundary falls back to the raw Markdown, resetting when the content changes.

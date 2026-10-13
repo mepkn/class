@@ -4,8 +4,8 @@
 #
 # Secrets and server details live in .env.prod.local (git-ignored); see
 # .env.example.
-#   npm run deploy        deploy the backend, build, upload
-#   npm run deploy:dry    preview only: nothing is deployed or uploaded
+#   scripts/deploy.sh            deploy the backend, build, upload
+#   DRY_RUN=1 scripts/deploy.sh  preview only: nothing is deployed or uploaded
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -28,25 +28,25 @@ done < .env.prod.local
 : "${DEPLOY_HOST:?DEPLOY_HOST is not set in .env.prod.local}"
 : "${DEPLOY_PORT:?DEPLOY_PORT is not set in .env.prod.local}"
 : "${DEPLOY_DIR:?DEPLOY_DIR is not set in .env.prod.local}"
-# .env.local points `convex` at the local dev backend; don't let it win.
+# backend/.env.local points `convex` at the local dev backend; don't let it win.
 unset CONVEX_DEPLOYMENT
 
 echo "› Checks"
-npm run check
+scripts/check.sh
 
 if [ -n "${DRY_RUN:-}" ]; then
   echo "› Backend (dry run)"
-  npx convex deploy -y --dry-run
+  (cd backend && npx convex deploy --dry-run)
   echo "› Upload (dry run, using a local build)"
-  npm run build
+  npm --prefix web run build
   rsync -avz --delete --dry-run -e "ssh -p $DEPLOY_PORT" web/dist/ "$DEPLOY_HOST:$DEPLOY_DIR/"
   echo "Dry run: nothing was deployed or uploaded."
   exit 0
 fi
 
 echo "› Backend + build"
-# Deploys convex/ and runs the build with VITE_CONVEX_URL set to production.
-npx convex deploy -y --cmd-url-env-var-name VITE_CONVEX_URL --cmd 'npm run build'
+# Deploys backend/convex/ and builds web/ with VITE_CONVEX_URL set to production.
+(cd backend && npx convex deploy -y --cmd-url-env-var-name VITE_CONVEX_URL --cmd 'npm --prefix ../web run build')
 
 if grep -rq "127.0.0.1:32" web/dist/assets || ! grep -rq "convex.cloud" web/dist/assets; then
   echo "Build does not point at the production Convex URL; not uploading." >&2
