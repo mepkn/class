@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useQuery } from "convex/react";
 import { GraduationCap, Loader2 } from "lucide-react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { StudentPollView } from "./StudentPollView";
 import { DusterWipe } from "./DusterWipe";
 import { cn } from "@/lib/utils";
-import { boardColorValue } from "../../convex/lib/boardColors";
+import { boardColorValue } from "@convex/lib/boardColors";
 
 interface Props {
   /** Teacher's Live Student Monitor: same UI, but voting is disabled. */

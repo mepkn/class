@@ -15,11 +15,11 @@ import {
   Sigma,
   StickyNote,
 } from "lucide-react";
-import { api } from "../../convex/_generated/api";
-import type { Doc } from "../../convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
+import type { Doc } from "@convex/_generated/dataModel";
 import { MarkdownRenderer } from "./MarkdownRenderer";
-import { showPresenterNotes } from "../../convex/lib/presenterNotes";
-import { splitSlides } from "../../convex/lib/slides";
+import { showPresenterNotes } from "@convex/lib/presenterNotes";
+import { splitSlides } from "@convex/lib/slides";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

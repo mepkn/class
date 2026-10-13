@@ -1,25 +1,16 @@
 import js from '@eslint/js'
 import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
+// The backend and scripts. The web app in web/ has its own config.
 export default defineConfig([
-  // src/components/ui and src/hooks/use-mobile.ts are vendored shadcn/ui code:
-  // their lint findings are upstream's to fix and would be undone by the next
-  // `shadcn add`. convex/_generated is written by `convex dev`.
-  globalIgnores(['dist', 'src/components/ui/**', 'src/hooks/use-mobile.ts', 'convex/_generated/**']),
+  globalIgnores(['web', 'convex/_generated']),
   {
     files: ['**/*.{ts,tsx}'],
-    extends: [
-      js.configs.recommended,
-      tseslint.configs.recommended,
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-    ],
+    extends: [js.configs.recommended, tseslint.configs.recommended],
     languageOptions: {
-      globals: globals.browser,
+      globals: globals.node,
     },
     rules: {
       // `_`-prefixed names and rest siblings mark values left out on purpose,

@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { ChevronDown, ChevronRight, Eye, EyeOff, ListPlus, Lock, LockOpen, Plus, Radio, Eraser, Trash2 } from "lucide-react";
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
-import type { LessonSummary } from "../../convex/classroom";
+import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
+import type { LessonSummary } from "@convex/classroom";
 import { errorMessage } from "@/lib/errorMessage";
-import { parentNumber } from "../../convex/lib/lessonNumber";
+import { parentNumber } from "@convex/lib/lessonNumber";
 import { Hint } from "@/components/Hint";
 import {
   AlertDialog,

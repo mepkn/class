@@ -3,7 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { useConvexAuth, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { Loader2, ShieldX } from "lucide-react";
-import { api } from "../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import { StudentView } from "@/pages/StudentView";
 
 // The editor is heavy; students never download it.

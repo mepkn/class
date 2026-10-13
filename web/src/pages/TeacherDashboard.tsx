@@ -11,9 +11,9 @@ import {
   SkipBack,
   SkipForward,
 } from "lucide-react";
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
-import type { LessonSummary } from "../../convex/classroom";
+import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
+import type { LessonSummary } from "@convex/classroom";
 import { LessonDrawer } from "@/components/LessonDrawer";
 import { LiveEditor, type EditorTarget } from "@/components/LiveEditor";
 import { PollManager } from "@/components/PollManager";
@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { BOARD_COLORS } from "../../convex/lib/boardColors";
+import { BOARD_COLORS } from "@convex/lib/boardColors";
 import { Switch } from "@/components/ui/switch";
 import {
   Sidebar,

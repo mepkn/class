@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { CheckCircle2, CircleCheckBig, Loader2 } from "lucide-react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import type { FunctionReturnType } from "convex/server";
 import { getVoterToken } from "@/lib/voterToken";
 import { errorMessage } from "@/lib/errorMessage";

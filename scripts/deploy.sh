@@ -36,19 +36,24 @@ npm run check
 
 if [ -n "${DRY_RUN:-}" ]; then
   echo "› Backend (dry run)"
-  npx convex deploy --dry-run
+  npx convex deploy -y --dry-run
   echo "› Upload (dry run, using a local build)"
   npm run build
-  rsync -avz --delete --dry-run -e "ssh -p $DEPLOY_PORT" dist/ "$DEPLOY_HOST:$DEPLOY_DIR/"
+  rsync -avz --delete --dry-run -e "ssh -p $DEPLOY_PORT" web/dist/ "$DEPLOY_HOST:$DEPLOY_DIR/"
   echo "Dry run: nothing was deployed or uploaded."
   exit 0
 fi
 
 echo "› Backend + build"
 # Deploys convex/ and runs the build with VITE_CONVEX_URL set to production.
-npx convex deploy -y --cmd 'npm run build'
+npx convex deploy -y --cmd-url-env-var-name VITE_CONVEX_URL --cmd 'npm run build'
+
+if grep -rq "127.0.0.1:32" web/dist/assets || ! grep -rq "convex.cloud" web/dist/assets; then
+  echo "Build does not point at the production Convex URL; not uploading." >&2
+  exit 1
+fi
 
 echo "› Upload"
-rsync -avz --delete -e "ssh -p $DEPLOY_PORT" dist/ "$DEPLOY_HOST:$DEPLOY_DIR/"
+rsync -avz --delete -e "ssh -p $DEPLOY_PORT" web/dist/ "$DEPLOY_HOST:$DEPLOY_DIR/"
 
 echo "Deployed to $URL"
