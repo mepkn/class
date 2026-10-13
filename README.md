@@ -113,8 +113,9 @@ static `web/dist/` (no restart needed). `scripts/deploy.sh` does both.
 One-time setup:
 
 1. Create a Convex cloud project and generate a **production deploy key** in the dashboard.
-2. Copy the production section of `.env.example` into `.env.prod.local` (git-ignored) and
-   fill in `CONVEX_DEPLOY_KEY`, `DEPLOY_HOST`, `DEPLOY_PORT` and `DEPLOY_DIR`. You also need
+2. Copy the production section of `.env.example` into the two git-ignored files it
+   names: `CONVEX_DEPLOY_KEY` in `backend/.env.prod.local`, and `DEPLOY_HOST`, `DEPLOY_PORT`
+   and `DEPLOY_DIR` in `web/.env.prod.local`. You also need
    SSH key access to the server.
 3. Set the Convex-side env vars on the **production** deployment (in `backend/`):
    ```bash

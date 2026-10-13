@@ -2,8 +2,9 @@
 # Deploys the Convex backend to production and the built site to the VPS,
 # where Caddy serves DEPLOY_DIR directly (no restart or sudo needed).
 #
-# Secrets and server details live in .env.prod.local (git-ignored); see
-# .env.example.
+# Each part keeps its production settings in its own .env.prod.local
+# (git-ignored; see .env.example): backend/ has the Convex deploy key, web/ has
+# the VPS details.
 #   scripts/deploy.sh            deploy the backend, build, upload
 #   DRY_RUN=1 scripts/deploy.sh  preview only: nothing is deployed or uploaded
 set -euo pipefail
@@ -11,23 +12,27 @@ cd "$(dirname "$0")/.."
 
 URL="https://class.pknspace.com"
 
-if [ ! -f .env.prod.local ]; then
-  echo "Missing .env.prod.local. Copy .env.example and fill in the production values." >&2
-  exit 1
-fi
-# Read KEY=VALUE lines literally (values such as deploy keys contain "|", so the
-# file is not sourced as shell). Surrounding quotes are stripped.
-while IFS= read -r line || [ -n "$line" ]; do
-  case "$line" in ''|\#*) continue ;; esac
-  key="${line%%=*}"
-  value="${line#*=}"
-  value="${value%\"}"; value="${value#\"}"; value="${value%\'}"; value="${value#\'}"
-  export "$key=$value"
-done < .env.prod.local
-: "${CONVEX_DEPLOY_KEY:?CONVEX_DEPLOY_KEY is not set in .env.prod.local}"
-: "${DEPLOY_HOST:?DEPLOY_HOST is not set in .env.prod.local}"
-: "${DEPLOY_PORT:?DEPLOY_PORT is not set in .env.prod.local}"
-: "${DEPLOY_DIR:?DEPLOY_DIR is not set in .env.prod.local}"
+# Reads KEY=VALUE lines literally (values such as deploy keys contain "|", so
+# the files are not sourced as shell). Surrounding quotes are stripped.
+load_env() {
+  if [ ! -f "$1" ]; then
+    echo "Missing $1. Copy its section of .env.example and fill in the production values." >&2
+    exit 1
+  fi
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in ''|\#*) continue ;; esac
+    key="${line%%=*}"
+    value="${line#*=}"
+    value="${value%\"}"; value="${value#\"}"; value="${value%\'}"; value="${value#\'}"
+    export "$key=$value"
+  done < "$1"
+}
+load_env backend/.env.prod.local
+load_env web/.env.prod.local
+: "${CONVEX_DEPLOY_KEY:?CONVEX_DEPLOY_KEY is not set in backend/.env.prod.local}"
+: "${DEPLOY_HOST:?DEPLOY_HOST is not set in web/.env.prod.local}"
+: "${DEPLOY_PORT:?DEPLOY_PORT is not set in web/.env.prod.local}"
+: "${DEPLOY_DIR:?DEPLOY_DIR is not set in web/.env.prod.local}"
 # backend/.env.local points `convex` at the local dev backend; don't let it win.
 unset CONVEX_DEPLOYMENT
 
