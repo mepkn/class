@@ -3,7 +3,7 @@
 # where Caddy serves DEPLOY_DIR directly (no restart or sudo needed).
 #
 # Each part keeps its production settings in its own .env.prod.local
-# (git-ignored; see .env.example): backend/ has the Convex deploy key, web/ has
+# (git-ignored; see each part's .env.example): backend/ has the Convex deploy key, web/ has
 # the VPS details.
 #   scripts/deploy.sh            deploy the backend, build, upload
 #   DRY_RUN=1 scripts/deploy.sh  preview only: nothing is deployed or uploaded
@@ -16,7 +16,7 @@ URL="https://class.pknspace.com"
 # the files are not sourced as shell). Surrounding quotes are stripped.
 load_env() {
   if [ ! -f "$1" ]; then
-    echo "Missing $1. Copy its section of .env.example and fill in the production values." >&2
+    echo "Missing $1. Copy the .env.example next to it and fill in the production values." >&2
     exit 1
   fi
   while IFS= read -r line || [ -n "$line" ]; do

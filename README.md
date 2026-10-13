@@ -32,7 +32,7 @@ cd ../web && npm install && npm run dev   # second terminal → http://localhost
 
 For non-interactive runs (CI or agents), use `CONVEX_AGENT_MODE=anonymous npx convex dev`
 to skip the prompt. `npx convex dev` writes `backend/.env.local` (`CONVEX_DEPLOYMENT`,
-`VITE_CONVEX_URL=http://127.0.0.1:3210`, `VITE_CONVEX_SITE_URL`). See `.env.example`.
+`VITE_CONVEX_URL=http://127.0.0.1:3210`, `VITE_CONVEX_SITE_URL`). See `backend/.env.example`.
 
 Once `npm install` has run, everything works offline.
 
@@ -113,8 +113,7 @@ static `web/dist/` (no restart needed). `scripts/deploy.sh` does both.
 One-time setup:
 
 1. Create a Convex cloud project and generate a **production deploy key** in the dashboard.
-2. Copy the production section of `.env.example` into the two git-ignored files it
-   names: `CONVEX_DEPLOY_KEY` in `backend/.env.prod.local`, and `DEPLOY_HOST`, `DEPLOY_PORT`
+2. Create the two git-ignored files from the `.env.example` next to each: `CONVEX_DEPLOY_KEY` in `backend/.env.prod.local`, and `DEPLOY_HOST`, `DEPLOY_PORT`
    and `DEPLOY_DIR` in `web/.env.prod.local`. You also need
    SSH key access to the server.
 3. Set the Convex-side env vars on the **production** deployment (in `backend/`):
