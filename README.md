@@ -173,10 +173,6 @@ DRY_RUN=1 scripts/deploy.sh   # checks, then preview the backend push and the up
 scripts/deploy.sh             # checks, deploy backend/convex/, build with the production URL, upload
 ```
 
-Upgrading a deployment from before saved polls (one poll row per launch): after deploying,
-run `npx convex run --prod migrations:dropOldPolls` once (in `backend/`). It deletes the old
-polls and votes; it's safe to run again.
-
 ## How it works
 
 - **One subscription.** Students and the teacher's Live Student Monitor both render

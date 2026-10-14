@@ -27,7 +27,6 @@ export default defineSchema({
     activeLessonId: v.optional(v.id("lessons")),
     currentContent: v.string(), // Markdown currently shown to students
     activeRunId: v.optional(v.id("pollRuns")), // a saved poll launched by hand: takes over the screen
-    activePollId: v.optional(v.id("polls")), // LEGACY: cleared by migrations:dropOldPolls
     updatedAt: v.number(),
     pushedAt: v.optional(v.number()), // set on Push to Room / Blank Blackboard (drives the duster wipe)
     dusterEnabled: v.optional(v.boolean()), // duster animation on students' screens (default on)
@@ -45,9 +44,7 @@ export default defineSchema({
     correctIndex: v.optional(v.number()), // unset = opinion poll
     ownerLessonId: v.optional(v.id("lessons")),
     createdAt: v.number(),
-    updatedAt: v.optional(v.number()), // LEGACY optional: old rows lack it
-    showResults: v.optional(v.boolean()), // LEGACY
-    isActive: v.optional(v.boolean()), // LEGACY
+    updatedAt: v.number(),
   })
     .index("by_owner", ["ownerLessonId"])
     .searchIndex("search_question", { searchField: "question" }),
@@ -78,8 +75,7 @@ export default defineSchema({
     .index("by_poll", ["pollId"]),
 
   votes: defineTable({
-    runId: v.optional(v.id("pollRuns")), // LEGACY optional: old rows have pollId instead
-    pollId: v.optional(v.id("polls")), // LEGACY
+    runId: v.id("pollRuns"),
     voterToken: v.string(),
     selectedOption: v.number(),
   })

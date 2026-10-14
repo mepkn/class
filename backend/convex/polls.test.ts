@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, it } from "vitest";
-import { api, internal } from "./_generated/api";
+import { api } from "./_generated/api";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.ts");
@@ -126,30 +126,6 @@ describe("running a saved poll", () => {
       ...(await ctx.db.query("votes").collect()),
     ]);
     expect(left).toEqual([]);
-  });
-});
-
-describe("migrations.dropOldPolls", () => {
-  it("deletes old polls and votes and leaves new ones", async () => {
-    const { t, teacher } = await setup();
-    await t.run(async (ctx) => {
-      const pollId = await ctx.db.insert("polls", {
-        question: "Old",
-        options: ["a", "b"],
-        correctIndex: 0,
-        showResults: false,
-        isActive: true,
-        createdAt: 0,
-      });
-      await ctx.db.insert("votes", { pollId, voterToken: TOKEN, selectedOption: 0 });
-      await ctx.db.insert("classroomState", { mode: "poll", activePollId: pollId, currentContent: "", updatedAt: 0 });
-    });
-    await teacher.mutation(api.polls.createPoll, quiz);
-    expect(await t.mutation(internal.migrations.dropOldPolls, {})).toEqual({ polls: 1, votes: 1 });
-    const room = await t.run((ctx) => ctx.db.query("classroomState").first());
-    expect(room?.mode).toBe("lesson");
-    expect(room?.activePollId).toBeUndefined();
-    expect(await t.run((ctx) => ctx.db.query("polls").collect())).toHaveLength(1);
   });
 });
 

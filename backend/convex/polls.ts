@@ -165,7 +165,7 @@ export const searchBank = query({
           .withSearchIndex("search_question", (q) => q.search("question", text))
           .take(100)
       : await ctx.db.query("polls").order("desc").take(200);
-    const bank = found.filter((p) => p.ownerLessonId === undefined && p.isActive === undefined).slice(0, 50);
+    const bank = found.filter((p) => p.ownerLessonId === undefined).slice(0, 50);
     return await Promise.all(
       bank.map(async (poll) => ({
         ...poll,
