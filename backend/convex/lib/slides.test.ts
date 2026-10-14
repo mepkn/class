@@ -12,6 +12,10 @@ describe("splitSlides", () => {
     const md = "```\n\n---\n```";
     expect(splitSlides(md)).toEqual([md]);
   });
+  it("handles longer fences that wrap a shorter one", () => {
+    const md = "````md\n```\n\n---\n```\n````";
+    expect(splitSlides(md)).toEqual([md]);
+  });
   it("ignores a leading separator", () => {
     expect(splitSlides("---\n\n# One")).toEqual(["# One"]);
   });

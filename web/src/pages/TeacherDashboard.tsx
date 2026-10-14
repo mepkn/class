@@ -19,6 +19,7 @@ import { LiveEditor, type EditorTarget } from "@/components/LiveEditor";
 import { PollManager } from "@/components/PollManager";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StudentStage } from "@/components/StudentStage";
+import { InlinePollControls } from "@/components/InlinePollControls";
 import { Hint } from "@/components/Hint";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -443,6 +444,9 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                 <SidebarContent className="p-3">
                   <TabsContent value="monitor" className="mt-0 space-y-3">
                     <ScaledMonitor />
+                    {session?.mode === "lesson" && (
+                      <InlinePollControls polls={session.inlinePolls} slide={session.slide.index} />
+                    )}
                     <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
                       <Label htmlFor="duster" className="text-sm leading-snug">
                         Duster animation
@@ -518,7 +522,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                     </div>
                   </TabsContent>
                   <TabsContent value="poll" className="mt-0">
-                    <PollManager activePollId={session?.poll?._id ?? null} />
+                    <PollManager activeRunId={session?.poll?._id ?? null} lesson={editingLesson ?? liveLesson} />
                     <div className="mt-6">
                       <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
                         Student view

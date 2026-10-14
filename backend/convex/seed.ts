@@ -209,13 +209,20 @@ export default internalMutation({
 });
 
 /**
- * `npx convex run seed:reset` — wipes lessons, polls, votes and the room
+ * `npx convex run seed:reset` — wipes lessons, polls, poll runs, votes and the room
  * (teacher accounts are kept). Run `seed:default` afterwards to re-seed.
  */
 export const reset = internalMutation({
   args: {},
   handler: async (ctx) => {
-    for (const table of ["votes", "polls", "classroomState", "lessons"] as const) {
+    for (const table of [
+      "votes",
+      "pollRuns",
+      "lessonPolls",
+      "polls",
+      "classroomState",
+      "lessons",
+    ] as const) {
       for (const doc of await ctx.db.query(table).collect()) await ctx.db.delete(doc._id);
     }
   },

@@ -14,7 +14,10 @@ import { stripPresenterNotes } from "./lib/presenterNotes";
 import { clampSlide, splitSlides } from "./lib/slides";
 import { slideMode } from "./schema";
 import { requireTeacher } from "./lib/requireTeacher";
-import { assertContentSize, deactivatePoll, ensureRoom, readRoom } from "./lib/room";
+import { assertContentSize, ensureRoom, readRoom } from "./lib/room";
+import { clearRuns, tallyRun } from "./lib/runs";
+import { syncInlineRuns } from "./lib/inlineRuns";
+import { pollsInContent } from "./lib/inlinePolls";
 
 // ---------------------------------------------------------------------------
 // Public (anonymous)
@@ -22,7 +25,7 @@ import { assertContentSize, deactivatePoll, ensureRoom, readRoom } from "./lib/r
 
 /**
  * The one subscription every student (and the teacher's monitor) uses.
- * `correctIndex` and vote counts are only included once results are revealed.
+ * A poll's `correctIndex` and vote counts are only included once its results are revealed.
  */
 export const getActiveSession = query({
   args: {},
@@ -35,56 +38,67 @@ export const getActiveSession = query({
         activeLessonId: null,
         pushedAt: null,
         slide: { index: 0, count: 1 },
-        revealed: [] as string[],
+        revealed: [] as { slide: number; content: string }[],
         dusterEnabled: true,
         boardColor: DEFAULT_BOARD_COLOR as string,
         slideMode: "build" as "build" | "replace",
         poll: null,
+        inlinePolls: [],
       };
     }
 
+    // A saved poll launched by hand: it replaces the lesson on screen.
     let poll = null;
-    if (room.mode === "poll" && room.activePollId) {
-      const p = await ctx.db.get(room.activePollId);
-      if (p && p.isActive) {
-        let results = null;
-        if (p.showResults) {
-          const votes = await ctx.db
-            .query("votes")
-            .withIndex("by_poll", (q) => q.eq("pollId", p._id))
-            .collect();
-          const counts = p.options.map(() => 0);
-          for (const vote of votes) {
-            if (vote.selectedOption >= 0 && vote.selectedOption < counts.length) {
-              counts[vote.selectedOption]++;
-            }
-          }
-          results = { correctIndex: p.correctIndex, counts, total: votes.length };
-        }
+    if (room.mode === "poll" && room.activeRunId) {
+      const run = await ctx.db.get(room.activeRunId);
+      if (run) {
         poll = {
-          _id: p._id,
-          question: p.question,
-          options: p.options,
-          showResults: p.showResults,
-          results,
+          _id: run._id,
+          question: run.question,
+          options: run.options,
+          showResults: run.revealed,
+          results: run.revealed
+            ? { correctIndex: run.correctIndex ?? null, ...(await tallyRun(ctx, run)) }
+            : null,
         };
       }
     }
 
     const slides = splitSlides(room.currentContent);
     const slideIndex = clampSlide(room.currentSlide ?? 0, slides.length);
-    const shown =
-      (room.slideMode ?? "build") === "replace" ? [slides[slideIndex]] : slides.slice(0, slideIndex + 1);
-    const revealed = shown
-      .map(stripPresenterNotes)
-      .map((part) => part.trim())
-      .filter((part) => part !== "");
+    const first = (room.slideMode ?? "build") === "replace" ? slideIndex : 0;
+    const revealed = slides
+      .slice(first, slideIndex + 1)
+      .map((part, i) => ({ slide: first + i, content: stripPresenterNotes(part).trim() }))
+      .filter((part) => part.content !== "");
+
+    // Inline polls on the slides students can see, in slide and block order.
+    const runs =
+      room.mode === "lesson"
+        ? await ctx.db
+            .query("pollRuns")
+            .withIndex("by_slide", (q) => q.eq("kind", "inline").gte("slide", first).lte("slide", slideIndex))
+            .collect()
+        : [];
+    const inlinePolls = await Promise.all(
+      runs.map(async (run) => ({
+        slide: run.slide ?? 0,
+        blockIndex: run.blockIndex ?? 0,
+        _id: run._id,
+        question: run.question,
+        options: run.options,
+        showResults: run.revealed,
+        results: run.revealed
+          ? { correctIndex: run.correctIndex ?? null, ...(await tallyRun(ctx, run)) }
+          : null,
+      })),
+    );
 
     return {
       mode: room.mode,
       // Build-up: slides 1..current are shown together; replace: only the current one.
       // Presenter notes (`%%` lines) are stripped. Students never see upcoming slides.
-      currentContent: revealed.join("\n\n"),
+      currentContent: revealed.map((part) => part.content).join("\n\n"),
       revealed,
       slide: { index: slideIndex, count: slides.length },
       activeLessonId: room.activeLessonId ?? null,
@@ -93,6 +107,7 @@ export const getActiveSession = query({
       boardColor: room.boardColor ?? DEFAULT_BOARD_COLOR,
       slideMode: room.slideMode ?? "build",
       poll,
+      inlinePolls,
     };
   },
 });
@@ -267,8 +282,33 @@ export const createLesson = mutation({
   },
 });
 
+/** What deleting a lesson takes with it: its own polls (saved + inline) and linked bank polls. */
+async function lessonPolls(ctx: QueryCtx, lesson: Doc<"lessons">) {
+  const links = await ctx.db
+    .query("lessonPolls")
+    .withIndex("by_lesson", (q) => q.eq("lessonId", lesson._id))
+    .collect();
+  const own = await ctx.db
+    .query("polls")
+    .withIndex("by_owner", (q) => q.eq("ownerLessonId", lesson._id))
+    .collect();
+  return { links, own, inline: pollsInContent(lesson.content).length };
+}
+
+/** Counts for the delete-lesson confirmation. */
+export const lessonPollCount = query({
+  args: { lessonId: v.id("lessons") },
+  handler: async (ctx, { lessonId }) => {
+    await requireTeacher(ctx);
+    const lesson = await ctx.db.get(lessonId);
+    if (!lesson) return null;
+    const { links, own, inline } = await lessonPolls(ctx, lesson);
+    return { deleted: own.length + inline, bankLinked: links.length - own.length };
+  },
+});
+
 /**
- * Deletes a lesson. Blocked while students are viewing it or while it has sub-lessons.
+ * Deletes a lesson and its own polls. Blocked while students are viewing it or while it has sub-lessons.
  * (If it was live earlier — e.g. before a Reset — the room's link to it is cleared.)
  */
 export const deleteLesson = mutation({
@@ -290,6 +330,17 @@ export const deleteLesson = mutation({
     if (room?.activeLessonId === lessonId) {
       await ctx.db.patch(room._id, { activeLessonId: undefined, updatedAt: Date.now() });
     }
+    // Its own polls go with it; bank polls it used stay in the bank (only the links go).
+    const { links, own } = await lessonPolls(ctx, lesson);
+    for (const link of links) await ctx.db.delete(link._id);
+    for (const poll of own) {
+      const elsewhere = await ctx.db
+        .query("lessonPolls")
+        .withIndex("by_poll", (q) => q.eq("pollId", poll._id))
+        .collect();
+      for (const link of elsewhere) await ctx.db.delete(link._id);
+      await ctx.db.delete(poll._id);
+    }
     await ctx.db.delete(lessonId);
   },
 });
@@ -302,16 +353,17 @@ export const pushLesson = mutation({
     if (!lesson) throw new ConvexError("Lesson not found");
     if (lesson.isLocked) throw new ConvexError("Lesson is locked");
     const room = await ensureRoom(ctx);
-    if (room.activePollId) await deactivatePoll(ctx, room.activePollId);
+    await clearRuns(ctx); // fresh start: every poll's votes go
     await ctx.db.patch(room._id, {
       mode: "lesson",
       activeLessonId: lessonId,
       currentContent: lesson.content,
       pushedAt: Date.now(),
       currentSlide: 0,
-      activePollId: undefined,
+      activeRunId: undefined,
       updatedAt: Date.now(),
     });
+    await syncInlineRuns(ctx, lesson.content, 0);
   },
 });
 
@@ -320,14 +372,14 @@ export const pushBlankBoard = mutation({
   handler: async (ctx) => {
     await requireTeacher(ctx);
     const room = await ensureRoom(ctx);
-    if (room.activePollId) await deactivatePoll(ctx, room.activePollId);
+    await clearRuns(ctx); // fresh start: every poll's votes go
     await ctx.db.patch(room._id, {
       mode: "lesson",
       activeLessonId: undefined,
       currentContent: "",
       pushedAt: Date.now(),
       currentSlide: 0,
-      activePollId: undefined,
+      activeRunId: undefined,
       updatedAt: Date.now(),
     });
   },
@@ -340,6 +392,8 @@ export const updateLiveContent = mutation({
     assertContentSize(content);
     const room = await ensureRoom(ctx);
     await ctx.db.patch(room._id, { currentContent: content, updatedAt: Date.now() });
+    // An edited inline poll starts again; the rest keep their votes.
+    await syncInlineRuns(ctx, content, clampSlide(room.currentSlide ?? 0, splitSlides(content).length));
   },
 });
 
@@ -373,6 +427,7 @@ export const setSlide = mutation({
     const next = clampSlide(index, splitSlides(room.currentContent).length);
     if (next !== (room.currentSlide ?? 0)) {
       await ctx.db.patch(room._id, { currentSlide: next, updatedAt: Date.now() });
+      await syncInlineRuns(ctx, room.currentContent, next);
     }
     return next;
   },

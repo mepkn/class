@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { ChevronDown, ChevronRight, Eye, EyeOff, ListPlus, Lock, LockOpen, Plus, Radio, Eraser, Trash2 } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
@@ -205,7 +205,9 @@ export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, o
                   <AlertDialogTitle>
                     Delete lesson {lesson.lessonNumber} — “{lesson.title}”?
                   </AlertDialogTitle>
-                  <AlertDialogDescription>This can't be undone.</AlertDialogDescription>
+                  <AlertDialogDescription>
+                    <PollsLost lessonId={lesson._id} /> This can't be undone.
+                  </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -288,5 +290,18 @@ export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, o
         )}
       </SidebarContent>
     </Sidebar>
+  );
+}
+
+/** The delete dialog's poll note (mounted only while the dialog is open). */
+function PollsLost({ lessonId }: { lessonId: Id<"lessons"> }) {
+  const count = useQuery(api.classroom.lessonPollCount, { lessonId });
+  if (!count || count.deleted + count.bankLinked === 0) return null;
+  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  return (
+    <>
+      {count.deleted > 0 && <>Its {plural(count.deleted, "poll")} will be deleted too. </>}
+      {count.bankLinked > 0 && <>{plural(count.bankLinked, "linked bank poll")} stay in the bank. </>}
+    </>
   );
 }

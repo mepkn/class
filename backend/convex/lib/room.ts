@@ -1,6 +1,6 @@
 import { ConvexError } from "convex/values";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import type { Doc, Id } from "../_generated/dataModel";
+import type { Doc } from "../_generated/dataModel";
 
 /** Reads the singleton room document (or null if it hasn't been created yet). */
 export async function readRoom(ctx: QueryCtx): Promise<Doc<"classroomState"> | null> {
@@ -32,10 +32,4 @@ export function assertContentSize(content: string) {
   if (bytes > MAX_CONTENT_BYTES) {
     throw new ConvexError(`Content too large (${bytes} bytes, max ${MAX_CONTENT_BYTES})`);
   }
-}
-
-/** Marks a poll inactive (no-op if it's already inactive or gone). */
-export async function deactivatePoll(ctx: MutationCtx, pollId: Id<"polls">) {
-  const poll = await ctx.db.get(pollId);
-  if (poll && poll.isActive) await ctx.db.patch(pollId, { isActive: false });
 }

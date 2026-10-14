@@ -3,9 +3,10 @@ import { useQuery } from "convex/react";
 import { GraduationCap, Loader2 } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { MarkdownRenderer } from "./MarkdownRenderer";
-import { StudentPollView } from "./StudentPollView";
+import { StudentPollView, type InlinePoll } from "./StudentPollView";
 import { DusterWipe } from "./DusterWipe";
 import { cn } from "@/lib/utils";
+import { PollSlotContext } from "@/lib/pollSlot";
 import { boardColorValue } from "@convex/lib/boardColors";
 
 interface Props {
@@ -45,6 +46,8 @@ export function StudentStage({ readOnly = false, className }: Props) {
               content={session.currentContent}
               slide={session.slide}
               revealed={session.revealed}
+              polls={session.inlinePolls}
+              readOnly={readOnly}
               pushedAt={session.pushedAt}
               dusterEnabled={session.dusterEnabled}
             />
@@ -96,12 +99,16 @@ function LessonBoard({
   content,
   slide,
   revealed,
+  polls,
+  readOnly,
   pushedAt,
   dusterEnabled,
 }: {
   content: string;
   slide: { index: number; count: number };
-  revealed: string[];
+  revealed: { slide: number; content: string }[];
+  polls: InlinePoll[];
+  readOnly: boolean;
   pushedAt: number | null;
   dusterEnabled: boolean;
 }) {
@@ -126,7 +133,7 @@ function LessonBoard({
     <div className="relative h-full">
       {/* Keyed per push, not per slide: revealing the next part keeps what's already shown. */}
       <div key={pushedAt ?? "none"} className="h-full">
-        <LessonCanvas content={content} parts={revealed} />
+        <LessonCanvas content={content} parts={revealed} polls={polls} readOnly={readOnly} />
       </div>
       {slide.count > 1 && (
         <div className="pointer-events-none absolute bottom-3 right-4 z-10 rounded-full bg-black/30 px-3 py-1 text-sm tabular-nums text-muted-foreground">
@@ -145,9 +152,20 @@ function LessonBoard({
 /**
  * Renders the board. With `parts` (build-up slides), each revealed part is its own block:
  * only a newly revealed part fades in, and the board scrolls smoothly to show it.
+ * Inline polls render inside their slide; without `parts` (the wiped-off board) they're left out.
  */
-function LessonCanvas({ content, parts }: { content: string; parts?: string[] }) {
-  const blocks = parts ?? (content.trim() === "" ? [] : [content]);
+function LessonCanvas({
+  content,
+  parts,
+  polls = [],
+  readOnly = false,
+}: {
+  content: string;
+  parts?: { slide: number; content: string }[];
+  polls?: InlinePoll[];
+  readOnly?: boolean;
+}) {
+  const blocks = parts ?? (content.trim() === "" ? [] : [{ slide: -1, content }]);
   const lastRef = useRef<HTMLDivElement>(null);
   const shown = useRef(blocks.length);
 
@@ -172,10 +190,17 @@ function LessonCanvas({ content, parts }: { content: string; parts?: string[] })
               ref={i === blocks.length - 1 ? lastRef : undefined}
               className={cn(i > 0 && "mt-6 sm:mt-8", i > 0 && "animate-fade-in")}
             >
-              <MarkdownRenderer
-                content={block}
-                className="prose-lg sm:prose-xl prose-p:leading-relaxed"
-              />
+              <PollSlotContext.Provider
+                value={(blockIndex) => {
+                  const poll = polls.find((p) => p.slide === block.slide && p.blockIndex === blockIndex);
+                  return poll ? <StudentPollView poll={poll} readOnly={readOnly} inline /> : null;
+                }}
+              >
+                <MarkdownRenderer
+                  content={block.content}
+                  className="prose-lg sm:prose-xl prose-p:leading-relaxed"
+                />
+              </PollSlotContext.Provider>
             </div>
           ))
         )}

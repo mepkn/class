@@ -6,22 +6,25 @@ import type { FunctionReturnType } from "convex/server";
 import { getVoterToken } from "@/lib/voterToken";
 import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "@/lib/utils";
+import { MarkdownRenderer } from "./MarkdownRenderer";
 
-export type SessionPoll = NonNullable<
-  FunctionReturnType<typeof api.classroom.getActiveSession>["poll"]
->;
+type Session = FunctionReturnType<typeof api.classroom.getActiveSession>;
+export type SessionPoll = NonNullable<Session["poll"]>;
+export type InlinePoll = Session["inlinePolls"][number];
 
 interface Props {
   poll: SessionPoll;
   /** Teacher monitor: show exactly what students see, but never vote. */
   readOnly?: boolean;
+  /** Inside a lesson slide (a ```poll block) rather than taking over the screen. */
+  inline?: boolean;
 }
 
-export function StudentPollView({ poll, readOnly = false }: Props) {
+export function StudentPollView({ poll, readOnly = false, inline = false }: Props) {
   const [voterToken] = useState(() => (readOnly ? "" : getVoterToken()));
   const alreadyVoted = useQuery(
     api.polls.hasVoted,
-    readOnly ? "skip" : { pollId: poll._id, voterToken },
+    readOnly ? "skip" : { runId: poll._id, voterToken },
   );
   const submitVote = useMutation(api.polls.submitVote);
 
@@ -57,7 +60,7 @@ export function StudentPollView({ poll, readOnly = false }: Props) {
     setSubmitting(true);
     setError(null);
     try {
-      await submitVote({ pollId: poll._id, voterToken, selectedOption: index });
+      await submitVote({ runId: poll._id, voterToken, selectedOption: index });
       setSelected(index);
     } catch (err) {
       const msg = errorMessage(err);
@@ -69,15 +72,24 @@ export function StudentPollView({ poll, readOnly = false }: Props) {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8 sm:py-12">
-      <div className="space-y-2 text-center">
+    <div
+      className={cn(
+        "not-prose mx-auto flex w-full flex-col",
+        inline ? "my-6 max-w-3xl gap-4 rounded-2xl border border-white/10 bg-black/15 p-4 sm:p-6" : "max-w-2xl gap-6 px-4 py-8 sm:py-12",
+      )}
+    >
+      <div className={cn("space-y-2", !inline && "text-center")}>
         <p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">Quick poll</p>
-        <h2 className="text-balance text-2xl font-semibold leading-tight sm:text-4xl">
-          {poll.question}
-        </h2>
+        <MarkdownRenderer
+          content={poll.question}
+          className={cn(
+            "text-balance font-semibold leading-tight prose-p:my-0",
+            inline ? "prose-lg sm:prose-xl" : "text-2xl sm:text-4xl prose-p:leading-tight",
+          )}
+        />
       </div>
 
-      <ul className="flex flex-col gap-3">
+      <ul className={cn("grid gap-3", poll.options.length > 4 && "sm:grid-cols-2")}>
         {poll.options.map((option, i) => {
           const isCorrect = results ? results.correctIndex === i : false;
           const count = results ? results.counts[i] : 0;
@@ -129,7 +141,8 @@ export function StudentPollView({ poll, readOnly = false }: Props) {
         {error && <p className="text-destructive">{error}</p>}
         {!error && results && (
           <p className="text-muted-foreground">
-            {results.total} {results.total === 1 ? "vote" : "votes"} · correct answer highlighted
+            {results.total} {results.total === 1 ? "vote" : "votes"}
+            {results.correctIndex !== null && " · correct answer highlighted"}
           </p>
         )}
         {!error && !results && voted && (

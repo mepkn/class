@@ -7,7 +7,7 @@ let memoryToken: string | null = null;
  * Anonymous, per-browser voter identity. Stored in localStorage so a new tab
  * gets the same token (and can't vote twice). Falls back to an in-memory token
  * when storage is unavailable (private mode, blocked cookies, ...).
- * The server's (pollId, voterToken) uniqueness check is the real protection.
+ * The server's (runId, voterToken) uniqueness check is the real protection.
  */
 export function getVoterToken(): string {
   try {

@@ -5,6 +5,7 @@ import MDEditor, {
   type ICommand,
 } from "@uiw/react-md-editor/nohighlight";
 import {
+  BarChart3,
   CircleDot,
   Code2,
   Link2,
@@ -73,6 +74,12 @@ const quickInsert: ICommand[] = [
     "Insert presenter note (only you see it)",
     <NotebookPen className="size-3.5" />,
     (sel) => `\n%% ${sel || "note for yourself — students never see this"}\n`,
+  ),
+  insertCommand(
+    "poll",
+    "Insert poll (starts when its slide is shown; [x] marks the answer)",
+    <BarChart3 className="size-3.5" />,
+    (sel) => `\n\`\`\`poll\n${sel || "Your question?"}\n- [x] Correct answer\n- Another option\n\`\`\`\n`,
   ),
   insertCommand(
     "slidebreak",

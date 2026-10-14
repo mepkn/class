@@ -11,6 +11,9 @@ Live: https://class.pknspace.com
   teacher's screen live.
 - **The teacher** opens `/teacher`, signs in with email and password (allowlisted), and
   runs the Command Center.
+- **Polls** written ahead: inline in a lesson (they start when their slide is shown), in a
+  lesson's Polls tab, or in a reusable poll bank. Quiz or opinion polls with 2–6 options.
+  Votes are never kept: each class starts from zero.
 
 ## Stack
 
@@ -61,7 +64,7 @@ placeholders) and the singleton classroom document. It skips lessons that alread
 ### Resetting local data
 
 ```bash
-npx convex run seed:reset && npm run seed   # wipe lessons/polls/votes/room, keep accounts
+npx convex run seed:reset && npm run seed   # wipe lessons, polls, votes and the room; keep accounts
 ```
 
 To wipe **everything**, including teacher accounts:
@@ -89,6 +92,44 @@ Upgrading a database from before nesting existed (numeric `lessonNumber`) needs 
 migration: `npx convex run migrations:lessonNumbersToString`. Run it while the schema still
 accepts both types.
 
+### Polls
+
+A poll has a question (Markdown, so math and code work) and 2–6 plain-text options. Mark a
+correct answer for a quiz; leave it unmarked for an opinion poll, which shows only the bars.
+Results are always revealed by hand, and students can't change their vote.
+
+**Inline polls** live in the lesson's Markdown (the toolbar's poll button inserts one):
+
+````markdown
+Quick check:
+
+```poll
+What is $F$ if $m = 2$ and $a = 3$?
+- 5
+- [x] 6
+- 9
+```
+````
+
+- It starts when its slide is shown and appears under the slide's text (in build-up mode,
+  under the earlier slides too).
+- Moving to another slide closes voting and reveals the results; in build-up mode they stay
+  on the board. Going back shows them again; **Run again** (Classroom tab) clears the votes
+  and reopens voting.
+- The Classroom tab shows the current slide's poll with live counts and **Reveal**.
+- Editing a poll on the live board starts it again.
+
+**Saved polls** live in the Polls tab:
+
+- **Lesson polls** belong to one lesson and are deleted with it.
+- **Bank polls** are reusable. Add one to any number of lessons; it's shared, not copied, so
+  an edit changes it everywhere. Deleting a lesson only removes the link.
+- **Launch** shows a saved poll full screen. **Close** ends it, deletes its votes and returns
+  to the lesson. A poll can't be edited while it's on screen.
+
+**Nothing is kept between classes.** Push to Room and Blank Blackboard delete every poll's
+votes, so teaching the same lesson to the next section is Blank Blackboard, then Push to Room.
+
 ## Scripts
 
 | Command | What it does |
@@ -99,7 +140,7 @@ accepts both types.
 | `npm run dev` (`backend/`) | Local Convex backend and function hot-reload |
 | `npm run seed` (`backend/`) | Idempotent seed |
 | `npm run setup:auth` (`backend/`) | Generate and set `JWT_PRIVATE_KEY` + `JWKS` |
-| `npm test` (`backend/`) | Backend unit tests (Vitest): lesson numbers, slides, presenter notes |
+| `npm test` (`backend/`) | Backend tests (Vitest, convex-test): lesson numbers, slides, notes, polls |
 | `npm run check` (`backend/`) | Typecheck, lint and tests |
 | `scripts/check.sh` | Every part's `check`; run before committing |
 | `scripts/deploy.sh` | Deploys the backend, builds and uploads the site |
@@ -132,20 +173,30 @@ DRY_RUN=1 scripts/deploy.sh   # checks, then preview the backend push and the up
 scripts/deploy.sh             # checks, deploy backend/convex/, build with the production URL, upload
 ```
 
+Upgrading a deployment from before saved polls (one poll row per launch): after deploying,
+run `npx convex run --prod migrations:dropOldPolls` once (in `backend/`). It deletes the old
+polls and votes; it's safe to run again.
+
 ## How it works
 
 - **One subscription.** Students and the teacher's Live Student Monitor both render
   `<StudentStage>`, which subscribes to `classroom:getActiveSession`. The monitor never
   reads editor state.
-- **No answer leaks.** `getActiveSession` includes `correctIndex` and vote counts only after
-  `showResults` is true.
+- **Polls and runs.** `polls` holds saved polls (`ownerLessonId` set for lesson polls, unset
+  for the bank) and `lessonPolls` each lesson's ordered list. Inline polls are parsed from the
+  Markdown (`backend/convex/lib/inlinePolls.ts`), with the same rules (`lib/pollRules.ts`).
+  Showing a poll creates a `pollRuns` row (a copy of the poll plus open/revealed); votes
+  belong to a run, and runs are deleted on close, Push to Room and Blank Blackboard.
+  `lib/inlineRuns.ts` starts, reveals and restarts inline runs as slides change.
+- **No answer leaks.** `getActiveSession` includes a poll's `correctIndex` and vote counts
+  only after it's revealed.
 - **Voting.** Each browser gets a `nanoid` token stored in `localStorage`, so new tabs share
-  it. The server enforces one vote per `(pollId, voterToken)` and rejects votes once results
+  it. The server enforces one vote per `(runId, voterToken)` and rejects votes once results
   are revealed.
 - **Security.** Every teacher query and mutation calls `requireTeacher(ctx)`. It checks that
   the caller is signed in and that their email is in `ALLOWED_EMAILS`. User-facing errors
   are thrown as `ConvexError`, so their messages also reach the client in production.
 - **UI.** shadcn/ui components live in `web/src/components/ui/` (vendored, added with `npx shadcn add`, not linted).
-- **Tests.** The pure helpers in `backend/convex/lib/` (lesson numbers, slides, presenter notes) have Vitest tests next to them; Convex skips `*.test.ts` files when deploying.
+- **Tests.** The pure helpers in `backend/convex/lib/` (lesson numbers, slides, presenter notes, poll parsing) have Vitest tests next to them, and `backend/convex/polls.test.ts` runs the poll functions with `convex-test`. Convex skips `*.test.ts` files when deploying.
 - **Rendering safety.** Raw HTML is skipped. KaTeX runs with `throwOnError: false`, and an
   ErrorBoundary falls back to the raw Markdown, resetting when the content changes.

@@ -46,3 +46,36 @@ export const backfillTopLevel = internalMutation({
     return { updated };
   },
 });
+
+/**
+ * One-off: polls became saved polls + temporary runs. Deletes every old poll (the ones with
+ * the legacy `isActive` flag) and every old vote, and clears the room's old poll link.
+ */
+export const dropOldPolls = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    let votes = 0;
+    let polls = 0;
+    for (const vote of await ctx.db.query("votes").collect()) {
+      if (vote.runId === undefined) {
+        await ctx.db.delete(vote._id);
+        votes++;
+      }
+    }
+    for (const poll of await ctx.db.query("polls").collect()) {
+      if (poll.isActive !== undefined) {
+        await ctx.db.delete(poll._id);
+        polls++;
+      }
+    }
+    for (const room of await ctx.db.query("classroomState").collect()) {
+      if (room.activePollId !== undefined) {
+        await ctx.db.patch(room._id, {
+          activePollId: undefined,
+          ...(room.mode === "poll" && !room.activeRunId ? { mode: "lesson" as const } : {}),
+        });
+      }
+    }
+    return { polls, votes };
+  },
+});
