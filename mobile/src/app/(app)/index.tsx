@@ -27,6 +27,7 @@ export default function BoardScreen() {
   const closeLinks = useMutation(api.classroom.closeLinks);
   const { busy, error, act } = useAct();
   const [confirmBlank, setConfirmBlank] = useState(false);
+  const [jumpTo, setJumpTo] = useState<number | null>(null);
   const scroll = useRef<ScrollView>(null);
   const slideY = useRef<number[]>([]);
   // Keeps the live slide in view while images above it load, until you scroll yourself.
@@ -93,14 +94,18 @@ export default function BoardScreen() {
             className={`gap-2 rounded-lg border-2 bg-board p-4 ${i === index ? "border-primary" : "border-transparent"} ${
               i > index ? "opacity-40" : ""
             }`}>
-            <View
+            <Pressable
+              disabled={i === index}
+              onPress={() => setJumpTo(i)}
+              hitSlop={12}
+              accessibilityLabel={i === index ? `Slide ${i + 1}, live` : `Jump to slide ${i + 1}`}
               className={`absolute right-2 top-2 z-10 rounded-full px-2 py-0.5 ${i === index ? "bg-primary" : "bg-muted"}`}>
               <CmpText
                 className={`text-[11px] font-medium ${i === index ? "text-primary-foreground" : "text-muted-foreground"}`}
                 style={{ fontVariant: ["tabular-nums"] }}>
                 {i + 1}
               </CmpText>
-            </View>
+            </Pressable>
             {parts.length === 0 ? <CmpText className="text-muted-foreground">Empty slide</CmpText> : parts.map((p, j) => <Part key={j} part={p} />)}
           </View>
         ))}
@@ -133,6 +138,19 @@ export default function BoardScreen() {
         confirmLabel="Blank Blackboard"
         cancelLabel="Cancel"
         onConfirm={() => act(() => pushBlankBoard())}
+      />
+      <CmpConfirmDialog
+        open={jumpTo !== null}
+        onOpenChange={(open) => !open && setJumpTo(null)}
+        title={`Jump to slide ${(jumpTo ?? 0) + 1}?`}
+        description="Every student moves to this slide."
+        confirmLabel="Jump"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          if (jumpTo === null) return;
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          void act(() => setSlide({ index: jumpTo }));
+        }}
       />
     </View>
   );

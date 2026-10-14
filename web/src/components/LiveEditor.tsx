@@ -21,6 +21,16 @@ import type { Doc } from "@convex/_generated/dataModel";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { showPresenterNotes } from "@convex/lib/presenterNotes";
 import { splitSlides } from "@convex/lib/slides";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -135,6 +145,8 @@ interface Props {
     count: number;
     mode: "build" | "replace";
   } | null;
+  /** Teaching mode: move every student to this slide (the slide numbers ask first). */
+  onJumpSlide?: (index: number) => void;
 }
 
 /**
@@ -149,6 +161,7 @@ export function LiveEditor({
   onUnsavedChange,
   readOnly = false,
   liveSlide = null,
+  onJumpSlide,
 }: Props) {
   const [value, setValue] = useState(initialValue);
   const [lastSent, setLastSent] = useState(initialValue);
@@ -407,7 +420,7 @@ export function LiveEditor({
           components={{
             preview: (source) =>
               readOnly && liveSlide && liveSlide.count > 1 ? (
-                <SlidePreview source={source} slide={liveSlide} />
+                <SlidePreview source={source} slide={liveSlide} onJump={onJumpSlide} />
               ) : (
                 <div className="p-4">
                   <MarkdownRenderer content={showPresenterNotes(source)} />
@@ -428,11 +441,14 @@ export function LiveEditor({
 function SlidePreview({
   source,
   slide,
+  onJump,
 }: {
   source: string;
   slide: { index: number; count: number; mode: "build" | "replace" };
+  onJump?: (index: number) => void;
 }) {
   const parts = useMemo(() => splitSlides(source), [source]);
+  const [jumpTo, setJumpTo] = useState<number | null>(null);
   const currentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -460,20 +476,36 @@ function SlidePreview({
                   : "border-transparent opacity-35",
             )}
           >
-            <span
+            <button
+              type="button"
+              disabled={current || !onJump}
+              onClick={() => setJumpTo(i)}
+              title={current ? "Students see this slide" : `Jump to slide ${i + 1}`}
               className={cn(
                 "absolute right-2 top-2 rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums",
                 current
                   ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground",
+                  : "bg-muted text-muted-foreground enabled:cursor-pointer enabled:hover:bg-primary/30 enabled:hover:text-foreground",
               )}
             >
               {i + 1}
-            </span>
+            </button>
             <MarkdownRenderer content={showPresenterNotes(part)} />
           </div>
         );
       })}
+      <AlertDialog open={jumpTo !== null} onOpenChange={(open) => !open && setJumpTo(null)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Jump to slide {(jumpTo ?? 0) + 1}?</AlertDialogTitle>
+            <AlertDialogDescription>Every student moves to this slide.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => jumpTo !== null && onJump?.(jumpTo)}>Jump</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

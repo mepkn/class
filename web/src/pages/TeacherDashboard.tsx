@@ -327,6 +327,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                         ? { ...session.slide, mode: session.slideMode }
                         : null
                     }
+                    onJumpSlide={(index) => void act(() => setSlide({ index }))}
                   />
                 ) : (
                   <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
