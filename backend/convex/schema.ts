@@ -33,6 +33,11 @@ export default defineSchema({
     slideMode: v.optional(slideMode), // global: how `---` slides advance (default "build")
     currentSlide: v.optional(v.number()), // 0-based slide within currentContent (see convex/lib/slides.ts)
     boardColor: v.optional(v.string()), // id from convex/lib/boardColors.ts (default "green")
+    // A web page the teacher opened on every student's screen (only the teacher closes it).
+    // Cleared whenever the board moves on: next slide, push, Blank Blackboard, a poll.
+    link: v.optional(v.string()),
+    // Bumped by "Back to board": students' own link panels close too.
+    linksClosedAt: v.optional(v.number()),
   }),
 
   // Polls written ahead: lesson polls (ownerLessonId set, deleted with the lesson) and bank
@@ -73,6 +78,14 @@ export default defineSchema({
   })
     .index("by_slide", ["kind", "slide", "blockIndex"])
     .index("by_poll", ["pollId"]),
+
+  // Whether a link's site lets itself be shown inside the class page, checked by
+  // convex/links.ts when a lesson with the link is saved, pushed or edited live.
+  linkChecks: defineTable({
+    url: v.string(),
+    embeddable: v.boolean(),
+    checkedAt: v.number(),
+  }).index("by_url", ["url"]),
 
   votes: defineTable({
     runId: v.id("pollRuns"),

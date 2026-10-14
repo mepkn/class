@@ -5,6 +5,8 @@ import { api } from "@convex/_generated/api";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { StudentPollView, type InlinePoll } from "./StudentPollView";
 import { DusterWipe } from "./DusterWipe";
+import { LinkPanel } from "./LinkPanel";
+import { LinkOpenContext } from "@/lib/linkOpen";
 import { cn } from "@/lib/utils";
 import { PollSlotContext } from "@/lib/pollSlot";
 import { boardColorValue } from "@convex/lib/boardColors";
@@ -22,6 +24,13 @@ interface Props {
  */
 export function StudentStage({ readOnly = false, className }: Props) {
   const session = useQuery(api.classroom.getActiveSession);
+  // A link the student clicked on the board. It closes whenever the teacher does anything
+  // on the board: next slide or part, a push, a poll, their own link, or Back to board.
+  const [ownLink, setOwnLink] = useState<{ url: string; key: string } | null>(null);
+  const closeKey = session
+    ? [session.mode, session.slide.index, session.pushedAt, session.linksClosedAt, session.link].join("|")
+    : "";
+  const shownOwn = ownLink?.key === closeKey ? ownLink.url : null;
 
   return (
     <div
@@ -39,28 +48,44 @@ export function StudentStage({ readOnly = false, className }: Props) {
       ) : (
         // `key` gives each mode its own fade-in; content updates within a mode
         // re-render in place (no remount → no layout jump).
-        <div key={session.mode} className="animate-fade-in h-full">
-          {session.mode === "intro" && <IntroScreen />}
-          {session.mode === "lesson" && (
-            <LessonBoard
-              content={session.currentContent}
-              slide={session.slide}
-              revealed={session.revealed}
-              polls={session.inlinePolls}
-              readOnly={readOnly}
-              pushedAt={session.pushedAt}
-              dusterEnabled={session.dusterEnabled}
-            />
+        <LinkOpenContext.Provider
+          value={
+            readOnly
+              ? null
+              : (url) =>
+                  // Sites that refuse to be shown inside another page open in a new tab instead.
+                  session.blockedLinks.includes(url)
+                    ? window.open(url, "_blank", "noopener,noreferrer")
+                    : setOwnLink({ url, key: closeKey })
+          }
+        >
+          <div key={session.mode} className="animate-fade-in h-full">
+            {session.mode === "intro" && <IntroScreen />}
+            {session.mode === "lesson" && (
+              <LessonBoard
+                content={session.currentContent}
+                revealed={session.revealed}
+                polls={session.inlinePolls}
+                readOnly={readOnly}
+                pushedAt={session.pushedAt}
+                dusterEnabled={session.dusterEnabled}
+              />
+            )}
+            {session.mode === "poll" &&
+              (session.poll ? (
+                <div className="h-full overflow-y-auto">
+                  <StudentPollView poll={session.poll} readOnly={readOnly} />
+                </div>
+              ) : (
+                <IntroScreen />
+              ))}
+          </div>
+          {session.link ? (
+            <LinkPanel key={session.link} url={session.link} />
+          ) : (
+            shownOwn && <LinkPanel key={shownOwn} url={shownOwn} onClose={() => setOwnLink(null)} />
           )}
-          {session.mode === "poll" &&
-            (session.poll ? (
-              <div className="h-full overflow-y-auto">
-                <StudentPollView poll={session.poll} readOnly={readOnly} />
-              </div>
-            ) : (
-              <IntroScreen />
-            ))}
-        </div>
+        </LinkOpenContext.Provider>
       )}
     </div>
   );
@@ -97,7 +122,6 @@ function prefersReducedMotion() {
  */
 function LessonBoard({
   content,
-  slide,
   revealed,
   polls,
   readOnly,
@@ -105,7 +129,6 @@ function LessonBoard({
   dusterEnabled,
 }: {
   content: string;
-  slide: { index: number; count: number };
   revealed: { slide: number; content: string }[];
   polls: InlinePoll[];
   readOnly: boolean;
@@ -135,11 +158,6 @@ function LessonBoard({
       <div key={pushedAt ?? "none"} className="h-full">
         <LessonCanvas content={content} parts={revealed} polls={polls} readOnly={readOnly} />
       </div>
-      {slide.count > 1 && (
-        <div className="pointer-events-none absolute bottom-3 right-4 z-10 rounded-full bg-black/30 px-3 py-1 text-sm tabular-nums text-muted-foreground">
-          {slide.index + 1} / {slide.count}
-        </div>
-      )}
       {wipe && (
         <DusterWipe key={wipe.id} onDone={() => setWipe(null)}>
           <LessonCanvas content={wipe.oldContent} />

@@ -18,6 +18,8 @@ import { assertContentSize, ensureRoom, readRoom } from "./lib/room";
 import { clearRuns, tallyRun } from "./lib/runs";
 import { syncInlineRuns } from "./lib/inlineRuns";
 import { pollsInContent } from "./lib/inlinePolls";
+import { normalizeLink } from "./lib/links";
+import { blockedLinksIn, checkLinksIn } from "./links";
 
 // ---------------------------------------------------------------------------
 // Public (anonymous)
@@ -44,6 +46,9 @@ export const getActiveSession = query({
         slideMode: "build" as "build" | "replace",
         poll: null,
         inlinePolls: [],
+        link: null as string | null,
+        linksClosedAt: null as number | null,
+        blockedLinks: [] as string[],
       };
     }
 
@@ -94,11 +99,12 @@ export const getActiveSession = query({
       })),
     );
 
+    const currentContent = revealed.map((part) => part.content).join("\n\n");
     return {
       mode: room.mode,
       // Build-up: slides 1..current are shown together; replace: only the current one.
       // Presenter notes (`%%` lines) are stripped. Students never see upcoming slides.
-      currentContent: revealed.map((part) => part.content).join("\n\n"),
+      currentContent,
       revealed,
       slide: { index: slideIndex, count: slides.length },
       activeLessonId: room.activeLessonId ?? null,
@@ -108,6 +114,10 @@ export const getActiveSession = query({
       slideMode: room.slideMode ?? "build",
       poll,
       inlinePolls,
+      link: room.link ?? null,
+      linksClosedAt: room.linksClosedAt ?? null,
+      // Links on the board whose site refuses the in-page panel: they open in a new tab.
+      blockedLinks: await blockedLinksIn(ctx, currentContent),
     };
   },
 });
@@ -243,6 +253,7 @@ export const updateLesson = mutation({
       Object.entries(patch).filter(([, val]) => val !== undefined),
     );
     await ctx.db.patch(lessonId, clean);
+    if (patch.content !== undefined) await checkLinksIn(ctx, patch.content);
   },
 });
 
@@ -361,9 +372,11 @@ export const pushLesson = mutation({
       pushedAt: Date.now(),
       currentSlide: 0,
       activeRunId: undefined,
+      link: undefined,
       updatedAt: Date.now(),
     });
     await syncInlineRuns(ctx, lesson.content, 0);
+    await checkLinksIn(ctx, lesson.content);
   },
 });
 
@@ -380,6 +393,7 @@ export const pushBlankBoard = mutation({
       pushedAt: Date.now(),
       currentSlide: 0,
       activeRunId: undefined,
+      link: undefined,
       updatedAt: Date.now(),
     });
   },
@@ -394,6 +408,7 @@ export const updateLiveContent = mutation({
     await ctx.db.patch(room._id, { currentContent: content, updatedAt: Date.now() });
     // An edited inline poll starts again; the rest keep their votes.
     await syncInlineRuns(ctx, content, clampSlide(room.currentSlide ?? 0, splitSlides(content).length));
+    await checkLinksIn(ctx, content, { live: true });
   },
 });
 
@@ -426,7 +441,7 @@ export const setSlide = mutation({
     const room = await ensureRoom(ctx);
     const next = clampSlide(index, splitSlides(room.currentContent).length);
     if (next !== (room.currentSlide ?? 0)) {
-      await ctx.db.patch(room._id, { currentSlide: next, updatedAt: Date.now() });
+      await ctx.db.patch(room._id, { currentSlide: next, link: undefined, updatedAt: Date.now() });
       await syncInlineRuns(ctx, room.currentContent, next);
     }
     return next;
@@ -440,5 +455,28 @@ export const setSlideMode = mutation({
     await requireTeacher(ctx);
     const room = await ensureRoom(ctx);
     await ctx.db.patch(room._id, { slideMode: mode, updatedAt: Date.now() });
+  },
+});
+
+/** Opens a web page on every student's screen, over the board. Only `closeLinks` closes it. */
+export const showLink = mutation({
+  args: { url: v.string() },
+  handler: async (ctx, { url }) => {
+    await requireTeacher(ctx);
+    const link = normalizeLink(url);
+    if (!link) throw new ConvexError("That isn't a web address (http or https)");
+    const room = await ensureRoom(ctx);
+    await ctx.db.patch(room._id, { link, updatedAt: Date.now() });
+    return link;
+  },
+});
+
+/** "Back to board": closes the teacher's link and every link a student opened themselves. */
+export const closeLinks = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireTeacher(ctx);
+    const room = await ensureRoom(ctx);
+    await ctx.db.patch(room._id, { link: undefined, linksClosedAt: Date.now(), updatedAt: Date.now() });
   },
 });

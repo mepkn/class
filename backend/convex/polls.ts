@@ -253,7 +253,7 @@ async function startSavedRun(ctx: MutationCtx, pollId: Id<"polls">) {
     open: true,
     revealed: false,
   });
-  await ctx.db.patch(room._id, { mode: "poll", activeRunId: runId, updatedAt: Date.now() });
+  await ctx.db.patch(room._id, { mode: "poll", activeRunId: runId, link: undefined, updatedAt: Date.now() });
   return runId;
 }
 

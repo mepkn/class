@@ -4,12 +4,14 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import {
   ChevronLeft,
   ChevronRight,
+  Globe,
   LogOut,
   PanelLeft,
   PanelRight,
   Presentation,
   SkipBack,
   SkipForward,
+  Undo2,
 } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
@@ -20,6 +22,7 @@ import { PollManager } from "@/components/PollManager";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StudentStage } from "@/components/StudentStage";
 import { InlinePollControls } from "@/components/InlinePollControls";
+import { LinkControls } from "@/components/LinkControls";
 import { Hint } from "@/components/Hint";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -53,6 +56,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
   const setDusterAnimation = useMutation(api.classroom.setDusterAnimation);
   const setBoardColor = useMutation(api.classroom.setBoardColor);
   const setSlideMode = useMutation(api.classroom.setSlideMode);
+  const closeLinks = useMutation(api.classroom.closeLinks);
 
   const [targetRef, setTargetRef] = useState<TargetRef>({ kind: "live", nonce: 0 });
   const [autoSync, setAutoSync] = useState(true);
@@ -327,6 +331,18 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                 </div>
               )}
 
+              {session?.link && (
+                <div className="flex items-center gap-2 bg-primary/15 px-4 py-1.5 text-sm">
+                  <Globe className="size-4 shrink-0 text-primary" />
+                  <span className="min-w-0 truncate">
+                    Students see <span className="font-medium">{new URL(session.link).hostname}</span>
+                  </span>
+                  <Button size="sm" className="ml-auto h-7" onClick={() => act(() => closeLinks())}>
+                    <Undo2 /> Back to board
+                  </Button>
+                </div>
+              )}
+
               <div className={cn("flex min-h-0 flex-1 flex-col", teaching && "teaching-editor")}>
                 {editor ? (
                   <LiveEditor
@@ -434,7 +450,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                 <SidebarHeader className="border-b border-sidebar-border p-3">
                   <TabsList className="w-full">
                     <TabsTrigger value="monitor" className="flex-1">
-                      Classroom
+                      Classroom {session?.link && "•"}
                     </TabsTrigger>
                     <TabsTrigger value="poll" className="flex-1">
                       Polls {(session?.mode === "poll" || session?.inlinePolls.some((p) => p.slide === session.slide.index)) && "•"}
@@ -444,6 +460,9 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                 <SidebarContent className="p-3">
                   <TabsContent value="monitor" className="mt-0 space-y-3">
                     <ScaledMonitor />
+                    {session?.mode === "lesson" && (
+                      <LinkControls link={session.link} boardContent={session.currentContent} blocked={session.blockedLinks} />
+                    )}
                     <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
                       <Label htmlFor="duster" className="text-sm leading-snug">
                         Duster animation

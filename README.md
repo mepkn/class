@@ -16,6 +16,15 @@ Live: https://class.pknspace.com
   Votes are never kept: each class starts from zero.
 - **Presenter notes** only the teacher sees: `%% note` for one line, or lines between two
   `%%` lines for a longer note.
+- **Links stay in the class page.** A link a student clicks opens in a panel over the board,
+  never a new tab, and the student can close it. **Show** (Classroom tab) opens a link on every
+  screen that only the teacher can close. **Back to board**, the next slide, a push or a poll
+  closes every panel. Sites that refuse to be shown inside another page (Google, Gemini,
+  GitHub, Quick Draw…) open in a new tab instead, and the Links card marks them ⚠ New tab;
+  YouTube links play in the embed player. The backend checks each link's
+  `X-Frame-Options` / `frame-ancestors` headers when a lesson is saved, pushed or edited live
+  (`backend/convex/links.ts`; live edits wait 10 s so half-typed links are skipped). Results stay in
+  `linkChecks` for good; ↻ next to ⚠ New tab checks a link again.
 
 ## Stack
 
@@ -195,6 +204,6 @@ scripts/deploy.sh             # checks, deploy backend/convex/, build with the p
   the caller is signed in and that their email is in `ALLOWED_EMAILS`. User-facing errors
   are thrown as `ConvexError`, so their messages also reach the client in production.
 - **UI.** shadcn/ui components live in `web/src/components/ui/` (vendored, added with `npx shadcn add`, not linted).
-- **Tests.** The pure helpers in `backend/convex/lib/` (lesson numbers, slides, presenter notes, poll parsing) have Vitest tests next to them, and `backend/convex/polls.test.ts` runs the poll functions with `convex-test`. Convex skips `*.test.ts` files when deploying.
+- **Tests.** The pure helpers in `backend/convex/lib/` (lesson numbers, slides, presenter notes, poll parsing, links) have Vitest tests next to them, and `backend/convex/polls.test.ts` and `links.test.ts` run the poll and link functions with `convex-test`. Convex skips `*.test.ts` files when deploying.
 - **Rendering safety.** Raw HTML is skipped. KaTeX runs with `throwOnError: false`, and an
   ErrorBoundary falls back to the raw Markdown, resetting when the content changes.

@@ -10,6 +10,8 @@ import { ErrorBoundary } from "./ErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PollSlotContext } from "@/lib/pollSlot";
+import { LinkOpenContext } from "@/lib/linkOpen";
+import { normalizeLink } from "@convex/lib/links";
 
 interface HastNode {
   type: string;
@@ -106,6 +108,23 @@ function CodeBlock(props: ComponentProps<"pre"> & ExtraProps) {
   return <CodeView {...props} />;
 }
 
+function Link({ node: _node, href, ...props }: ComponentProps<"a"> & ExtraProps) {
+  const open = useContext(LinkOpenContext);
+  if (open === undefined) return <a href={href} {...props} target="_blank" rel="noopener noreferrer" />;
+  const link = href ? normalizeLink(href) : null;
+  return (
+    <a
+      href={href}
+      {...props}
+      onClick={(e) => {
+        e.preventDefault();
+        if (link && open) open(link);
+      }}
+      className={cn(open && link ? "cursor-pointer" : "cursor-default")}
+    />
+  );
+}
+
 function CodeView({ node, children, ...rest }: ComponentProps<"pre"> & ExtraProps) {
   const preRef = useRef<HTMLPreElement>(null);
   const [copied, setCopied] = useState(false);
@@ -150,7 +169,7 @@ function CodeView({ node, children, ...rest }: ComponentProps<"pre"> & ExtraProp
 
 const components: Components = {
   pre: CodeBlock,
-  a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+  a: Link,
   table: ({ node: _node, ...props }) => (
     <div className="overflow-x-auto">
       <table {...props} />
