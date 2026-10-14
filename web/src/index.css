@@ -122,9 +122,38 @@
   animation: fade-in 0.35s ease-out both;
 }
 
+/* ---- Student poll: options rise in one by one, the chosen one pops ---- */
+.animate-poll-in {
+  animation: fade-in 0.4s ease-out both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+@keyframes poll-pop {
+  40% {
+    transform: scale(1.025);
+  }
+}
+.animate-poll-pop {
+  animation: poll-pop 0.35s ease-out;
+}
+@keyframes poll-nudge {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+.animate-poll-nudge {
+  animation: poll-nudge 1.6s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-breathe,
-  .animate-fade-in {
+  .animate-fade-in,
+  .animate-poll-in,
+  .animate-poll-pop,
+  .animate-poll-nudge {
     animation: none;
   }
 }

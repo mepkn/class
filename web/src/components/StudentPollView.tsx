@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { CheckCircle2, CircleCheckBig, Loader2 } from "lucide-react";
+import { Check, CheckCircle2, CircleCheckBig, Loader2, Pointer } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import type { FunctionReturnType } from "convex/server";
 import { getVoterToken } from "@/lib/voterToken";
@@ -75,11 +75,12 @@ export function StudentPollView({ poll, readOnly = false, inline = false }: Prop
     <div
       className={cn(
         "not-prose mx-auto flex w-full flex-col",
-        inline ? "my-6 max-w-3xl gap-4 rounded-2xl border border-white/10 bg-black/15 p-4 sm:p-6" : "max-w-2xl gap-6 px-4 py-8 sm:py-12",
+        inline
+          ? "animate-fade-in my-6 max-w-3xl gap-4 rounded-2xl border border-white/15 border-l-4 border-l-primary/70 bg-white/[0.04] p-4 shadow-lg shadow-black/20 sm:p-6"
+          : "max-w-2xl gap-6 px-4 py-8 sm:py-12",
       )}
     >
       <div className={cn("space-y-2", !inline && "text-center")}>
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">Quick poll</p>
         <MarkdownRenderer
           content={poll.question}
           className={cn(
@@ -97,17 +98,20 @@ export function StudentPollView({ poll, readOnly = false, inline = false }: Prop
           const isMine = selected === i;
 
           return (
-            <li key={i}>
+            <li key={i} className="animate-poll-in" style={{ "--i": i } as React.CSSProperties}>
               <button
                 type="button"
                 disabled={!canVote || submitting}
                 onClick={() => vote(i)}
                 className={cn(
-                  "relative flex min-h-16 w-full items-center gap-4 overflow-hidden rounded-xl border-2 px-5 py-4 text-left text-lg font-medium transition-colors sm:text-xl",
-                  canVote
-                    ? "border-border bg-card hover:border-primary hover:bg-accent active:scale-[0.99]"
-                    : "cursor-default border-border bg-card",
-                  isMine && !results && "border-primary",
+                  "group relative flex min-h-16 w-full items-center gap-4 overflow-hidden rounded-xl border-2 px-5 py-4 text-left text-lg font-medium transition-all duration-200 sm:text-xl",
+                  "border-white/15 bg-white/[0.06]",
+                  canVote &&
+                    "cursor-pointer hover:-translate-y-0.5 hover:border-primary/70 hover:bg-primary/10 hover:shadow-md hover:shadow-black/30 active:translate-y-0 active:scale-[0.99]",
+                  !canVote && "cursor-default",
+                  canVote && submitting && "cursor-wait",
+                  isMine && !results && "animate-poll-pop border-primary bg-primary/15",
+                  voted && !isMine && !results && "opacity-50",
                   results && isCorrect && "border-success",
                 )}
               >
@@ -116,18 +120,25 @@ export function StudentPollView({ poll, readOnly = false, inline = false }: Prop
                     aria-hidden
                     className={cn(
                       "absolute inset-y-0 left-0 transition-[width] duration-1000 ease-out",
-                      isCorrect ? "bg-success/25" : "bg-white/8",
+                      isCorrect ? "bg-success/25" : "bg-white/10",
                     )}
                     style={{ width: barsGrown ? `${pct}%` : "0%" }}
                   />
                 )}
-                <span className="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary text-base font-semibold">
-                  {String.fromCharCode(65 + i)}
+                <span
+                  className={cn(
+                    "relative flex size-8 shrink-0 items-center justify-center rounded-full border border-white/20 text-base font-semibold transition-colors",
+                    canVote && "group-hover:border-primary group-hover:bg-primary group-hover:text-primary-foreground",
+                    isMine && "border-primary bg-primary text-primary-foreground",
+                  )}
+                >
+                  {isMine && !results ? <Check className="size-4" strokeWidth={3} /> : String.fromCharCode(65 + i)}
                 </span>
                 <span className="relative flex-1">{option}</span>
                 {results && (
                   <span className="relative flex items-center gap-2 tabular-nums">
                     {isCorrect && <CircleCheckBig className="size-6 text-success" />}
+                    {isMine && !isCorrect && <span className="text-sm text-muted-foreground">your vote</span>}
                     <span className="text-base text-muted-foreground">{pct}%</span>
                   </span>
                 )}
@@ -146,15 +157,22 @@ export function StudentPollView({ poll, readOnly = false, inline = false }: Prop
           </p>
         )}
         {!error && !results && voted && (
-          <p className="inline-flex items-center gap-2 text-success">
-            <CheckCircle2 className="size-5" /> Vote recorded — waiting for results…
+          <p className="animate-fade-in inline-flex items-center gap-2 text-success">
+            <CheckCircle2 className="size-5" /> Vote recorded · results soon
+            <span className="ml-1 inline-flex gap-1" aria-hidden>
+              {[0, 1, 2].map((d) => (
+                <span key={d} className="size-1.5 animate-pulse rounded-full bg-success" style={{ animationDelay: `${d * 200}ms` }} />
+              ))}
+            </span>
           </p>
         )}
         {!error && !results && !voted && !readOnly && alreadyVoted === undefined && (
           <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
         )}
         {!error && !results && !voted && canVote && (
-          <p className="text-muted-foreground">Tap an answer to vote</p>
+          <p className="inline-flex items-center gap-2 text-muted-foreground">
+            <Pointer className="animate-poll-nudge size-5 text-primary" /> Pick one answer · you can't change it later
+          </p>
         )}
         {readOnly && !results && (
           <p className="text-muted-foreground">Students are voting…</p>
