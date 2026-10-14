@@ -10,7 +10,7 @@ describe("presenter notes", () => {
     expect(stripPresenterNotes(md)).toBe(md);
   });
   it("shows notes as callouts for the teacher", () => {
-    expect(showPresenterNotes("%% say hi")).toBe("\n> 📝 **Note:** say hi\n");
+    expect(showPresenterNotes("%% say hi")).toBe("\n> 📝 say hi\n");
     expect(showPresenterNotes("%%")).toContain("…");
   });
 });

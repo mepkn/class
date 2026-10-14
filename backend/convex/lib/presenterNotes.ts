@@ -33,5 +33,5 @@ export function stripPresenterNotes(markdown: string): string {
 
 /** Teacher preview: each note becomes a visible callout. */
 export function showPresenterNotes(markdown: string): string {
-  return mapLines(markdown, (text) => `\n> 📝 **Note:** ${text || "…"}\n`);
+  return mapLines(markdown, (text) => `\n> 📝 ${text || "…"}\n`);
 }
