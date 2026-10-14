@@ -93,10 +93,14 @@ export default function BoardScreen() {
             className={`gap-2 rounded-lg border-2 bg-board p-4 ${i === index ? "border-primary" : "border-transparent"} ${
               i > index ? "opacity-40" : ""
             }`}>
-            <CmpText className={`text-xs font-semibold ${i === index ? "text-primary" : "text-muted-foreground"}`}>
-              Slide {i + 1}
-              {i === index ? " · live" : ""}
-            </CmpText>
+            <View
+              className={`absolute right-2 top-2 z-10 rounded-full px-2 py-0.5 ${i === index ? "bg-primary" : "bg-muted"}`}>
+              <CmpText
+                className={`text-[11px] font-medium ${i === index ? "text-primary-foreground" : "text-muted-foreground"}`}
+                style={{ fontVariant: ["tabular-nums"] }}>
+                {i + 1}
+              </CmpText>
+            </View>
             {parts.length === 0 ? <CmpText className="text-muted-foreground">Empty slide</CmpText> : parts.map((p, j) => <Part key={j} part={p} />)}
           </View>
         ))}
