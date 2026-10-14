@@ -102,7 +102,8 @@ function CodeBlock(props: ComponentProps<"pre"> & ExtraProps) {
   const slot = useContext(PollSlotContext);
   const index = props.node?.properties?.dataPoll;
   if (typeof index === "number") {
-    if (slot) return <>{slot(index)}</>;
+    const custom = slot?.(index);
+    if (custom !== undefined) return <>{custom}</>;
     return <PollPreview source={String(props.node?.properties?.dataPollSource ?? "")} />;
   }
   return <CodeView {...props} />;

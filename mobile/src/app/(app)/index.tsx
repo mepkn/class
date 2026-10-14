@@ -1,5 +1,6 @@
 import { api } from "@convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { BarChart3, ChevronLeft, ChevronRight, CircleCheckBig, Eraser, Globe, NotebookPen, TriangleAlert, Undo2 } from "lucide-react-native";
@@ -107,7 +108,9 @@ export default function BoardScreen() {
                 {i + 1}
               </CmpText>
             </Pressable>
-            {parts.length === 0 ? <CmpText className="text-muted-foreground">Empty slide</CmpText> : parts.map((p, j) => <Part key={j} part={p} />)}
+            {parts.length === 0 ? <CmpText className="text-muted-foreground">Empty slide</CmpText> : parts.map((p, j) => (
+                <Part key={j} part={p} result={p.kind === "poll" ? resultOf(session.inlinePolls, i, p.blockIndex) : undefined} />
+              ))}
           </View>
         ))}
         <ErrorText error={error} />
@@ -157,13 +160,61 @@ export default function BoardScreen() {
   );
 }
 
-function Part({ part }: { part: SlidePart }) {
+type InlinePoll = FunctionReturnType<typeof api.classroom.getActiveSession>["inlinePolls"][number];
+
+/** The poll's run once its answer is revealed (what students see then), else undefined. */
+function resultOf(polls: InlinePoll[], slide: number, blockIndex: number) {
+  const poll = polls.find((p) => p.slide === slide && p.blockIndex === blockIndex);
+  return poll?.results ? poll : undefined;
+}
+
+function Part({ part, result }: { part: SlidePart; result?: InlinePoll }) {
   if (part.kind === "text") return <MarkdownView content={part.text} onBoard />;
-  if (part.kind === "poll") return <PollPreview block={part.block} />;
+  if (part.kind === "poll") return result ? <PollResults poll={result} /> : <PollPreview block={part.block} />;
   return (
     <View className="flex-row gap-2 rounded-lg border-l-2 border-primary bg-card px-3 py-2">
       <CmpIcon as={NotebookPen} size={16} className="mt-0.5 text-primary" />
       <CmpText className="flex-1">{part.text}</CmpText>
+    </View>
+  );
+}
+
+/** A revealed inline poll as students see it: bars with each option's share, the answer in green. */
+function PollResults({ poll }: { poll: InlinePoll }) {
+  const results = poll.results!;
+  return (
+    <View className="gap-3 rounded-2xl border border-l-4 border-white/15 border-l-primary/70 bg-white/5 p-4">
+      <MarkdownView content={poll.question} onBoard />
+      <View className="gap-2">
+        {poll.options.map((option, i) => {
+          const correct = results.correctIndex === i;
+          const pct = results.total > 0 ? Math.round((results.counts[i] / results.total) * 100) : 0;
+          return (
+            <View
+              key={i}
+              className={`min-h-14 flex-row items-center gap-3 overflow-hidden rounded-xl border-2 bg-white/5 px-4 py-3 ${
+                correct ? "border-success" : "border-white/15"
+              }`}>
+              {/* A full-size layer, so the bar's width is a share of the whole option, padding included. */}
+              <View className="absolute inset-0 flex-row">
+                <View className={correct ? "bg-success/25" : "bg-white/10"} style={{ width: `${pct}%` }} />
+              </View>
+              <View className="size-7 items-center justify-center rounded-full border border-white/20">
+                <CmpText className="font-semibold">{String.fromCharCode(65 + i)}</CmpText>
+              </View>
+              <CmpText className="flex-1 text-lg">{option}</CmpText>
+              {correct && <CmpIcon as={CircleCheckBig} size={20} className="text-success" />}
+              <CmpText className="text-muted-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                {pct}%
+              </CmpText>
+            </View>
+          );
+        })}
+      </View>
+      <CmpText className="text-center text-muted-foreground">
+        {results.total} {results.total === 1 ? "vote" : "votes"}
+        {results.correctIndex !== null ? " · correct answer highlighted" : ""}
+      </CmpText>
     </View>
   );
 }

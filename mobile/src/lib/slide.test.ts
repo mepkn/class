@@ -15,7 +15,7 @@ describe("lessonSlides", () => {
   it("cuts poll blocks out as their own part", () => {
     expect(lessonSlides(source)[1]).toEqual([
       { kind: "text", text: "Two" },
-      { kind: "poll", block: { poll: { question: "Q?", options: ["a", "b"], correctIndex: 1 } } },
+      { kind: "poll", blockIndex: 0, block: { poll: { question: "Q?", options: ["a", "b"], correctIndex: 1 } } },
       { kind: "text", text: "after" },
     ]);
   });

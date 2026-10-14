@@ -327,6 +327,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                         ? { ...session.slide, mode: session.slideMode }
                         : null
                     }
+                    inlinePolls={session?.inlinePolls}
                     onJumpSlide={(index) => void act(() => setSlide({ index }))}
                   />
                 ) : (

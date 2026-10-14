@@ -19,6 +19,8 @@ import {
 import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
 import { MarkdownRenderer } from "./MarkdownRenderer";
+import { StudentPollView, type InlinePoll } from "./StudentPollView";
+import { PollSlotContext } from "@/lib/pollSlot";
 import { showPresenterNotes } from "@convex/lib/presenterNotes";
 import { splitSlides } from "@convex/lib/slides";
 import {
@@ -145,6 +147,8 @@ interface Props {
     count: number;
     mode: "build" | "replace";
   } | null;
+  /** Teaching mode: the live lesson's inline polls; revealed ones show their results as students see them. */
+  inlinePolls?: InlinePoll[];
   /** Teaching mode: move every student to this slide (the slide numbers ask first). */
   onJumpSlide?: (index: number) => void;
 }
@@ -161,6 +165,7 @@ export function LiveEditor({
   onUnsavedChange,
   readOnly = false,
   liveSlide = null,
+  inlinePolls = [],
   onJumpSlide,
 }: Props) {
   const [value, setValue] = useState(initialValue);
@@ -420,7 +425,7 @@ export function LiveEditor({
           components={{
             preview: (source) =>
               readOnly && liveSlide && liveSlide.count > 1 ? (
-                <SlidePreview source={source} slide={liveSlide} onJump={onJumpSlide} />
+                <SlidePreview source={source} slide={liveSlide} polls={inlinePolls} onJump={onJumpSlide} />
               ) : (
                 <div className="p-4">
                   <MarkdownRenderer content={showPresenterNotes(source)} />
@@ -441,10 +446,12 @@ export function LiveEditor({
 function SlidePreview({
   source,
   slide,
+  polls,
   onJump,
 }: {
   source: string;
   slide: { index: number; count: number; mode: "build" | "replace" };
+  polls: InlinePoll[];
   onJump?: (index: number) => void;
 }) {
   const parts = useMemo(() => splitSlides(source), [source]);
@@ -490,7 +497,14 @@ function SlidePreview({
             >
               {i + 1}
             </button>
-            <MarkdownRenderer content={showPresenterNotes(part)} />
+            <PollSlotContext.Provider
+              value={(blockIndex) => {
+                const poll = polls.find((p) => p.slide === i && p.blockIndex === blockIndex);
+                return poll?.results ? <StudentPollView poll={poll} readOnly inline /> : undefined;
+              }}
+            >
+              <MarkdownRenderer content={showPresenterNotes(part)} />
+            </PollSlotContext.Provider>
           </div>
         );
       })}
