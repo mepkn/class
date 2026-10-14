@@ -51,6 +51,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
 
   const pushLesson = useMutation(api.classroom.pushLesson);
   const pushBlankBoard = useMutation(api.classroom.pushBlankBoard);
+  const setPaused = useMutation(api.classroom.setPaused);
   const setDusterAnimation = useMutation(api.classroom.setDusterAnimation);
   const setBoardColor = useMutation(api.classroom.setBoardColor);
   const setSlideMode = useMutation(api.classroom.setSlideMode);
@@ -233,6 +234,8 @@ export function TeacherDashboard({ email }: { email: string | null }) {
         onOpen={(l) => goTo({ kind: "lesson", lessonId: l._id })}
         onPush={onPush}
         onBlank={onBlank}
+        paused={session?.paused ?? false}
+        onPause={(paused) => void act(() => setPaused({ paused }))}
         onCreated={(lessonId) => setTargetRef({ kind: "lesson", lessonId })}
         confirmLeaveEditor={() => confirmDiscard(editorChanges())}
         readOnly={teaching}
@@ -262,6 +265,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                 <div className="flex min-w-[10rem] flex-1 items-center gap-1">
                   <StatusBadge
                     mode={session?.mode}
+                    paused={session?.paused ?? false}
                     lesson={liveLesson}
                     active={
                       targetRef.kind === "live" ||

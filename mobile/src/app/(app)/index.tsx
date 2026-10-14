@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import { BarChart3, ChevronLeft, ChevronRight, CircleCheckBig, Eraser, Globe, NotebookPen, TriangleAlert, Undo2 } from "lucide-react-native";
+import { BarChart3, ChevronLeft, ChevronRight, CircleCheckBig, Eraser, Globe, NotebookPen, Pause, Play, TriangleAlert, Undo2 } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { CmpButton } from "@/components/cmp/cmp-button";
@@ -27,6 +27,7 @@ export default function BoardScreen() {
   const setSlide = useMutation(api.classroom.setSlide);
   const pushBlankBoard = useMutation(api.classroom.pushBlankBoard);
   const closeLinks = useMutation(api.classroom.closeLinks);
+  const setPaused = useMutation(api.classroom.setPaused);
   const { busy, error, act } = useAct();
   const [confirmBlank, setConfirmBlank] = useState(false);
   const [jumpTo, setJumpTo] = useState<number | null>(null);
@@ -79,6 +80,9 @@ export default function BoardScreen() {
           </CmpText>
         </View>
 
+        {session.paused && (
+          <Banner icon={Pause} text="Paused · students see an empty board" action="Resume" onPress={() => act(() => setPaused({ paused: false }))} />
+        )}
         {session.mode === "poll" && (
           <Banner icon={BarChart3} text="A poll is on every screen." action="Polls" onPress={() => router.navigate("/polls")} />
         )}
@@ -119,6 +123,20 @@ export default function BoardScreen() {
       <View className="gap-2 border-t border-border p-3">
         <View className="flex-row gap-2">
           <BigButton icon={ChevronLeft} label="Prev" disabled={index === 0} onPress={() => go(-1)} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={session.paused ? "Resume" : "Pause"}
+            disabled={busy}
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              void act(() => setPaused({ paused: !session.paused }));
+            }}
+            className={`h-20 w-20 items-center justify-center gap-1 rounded-xl ${
+              session.paused ? "bg-sky-500 active:bg-sky-500/80" : "border border-border bg-secondary active:bg-accent"
+            }`}>
+            <CmpIcon as={session.paused ? Play : Pause} size={24} className={session.paused ? "text-white" : "text-foreground"} />
+            <CmpText className={`text-xs font-semibold ${session.paused ? "text-white" : ""}`}>{session.paused ? "Resume" : "Pause"}</CmpText>
+          </Pressable>
           <BigButton icon={ChevronRight} label="Next" primary disabled={index >= count - 1} onPress={() => go(1)} />
         </View>
         <View className="flex-row gap-2">

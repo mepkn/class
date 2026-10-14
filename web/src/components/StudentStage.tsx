@@ -45,6 +45,9 @@ export function StudentStage({ readOnly = false, className }: Props) {
         <div className="flex h-full items-center justify-center">
           <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
+      ) : session.paused ? (
+        // Paused: the teacher is at the real blackboard. Everything comes back on Resume.
+        <p className="animate-fade-in pt-24 text-center text-lg text-muted-foreground/60">Nothing to see here.</p>
       ) : (
         // `key` gives each mode its own fade-in; content updates within a mode
         // re-render in place (no remount → no layout jump).

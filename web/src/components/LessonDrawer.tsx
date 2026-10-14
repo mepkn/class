@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { ChevronDown, ChevronRight, Eye, EyeOff, ListPlus, Lock, LockOpen, Plus, Radio, Eraser, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, EyeOff, ListPlus, Lock, LockOpen, Pause, Play, Plus, Radio, Eraser, Trash2 } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import type { LessonSummary } from "@convex/classroom";
@@ -30,6 +30,9 @@ interface Props {
   onOpen: (lesson: LessonSummary) => void;
   onPush: (lesson: LessonSummary) => void;
   onBlank: () => void;
+  /** Students see an empty board while you explain on the real one; Resume brings it all back. */
+  paused: boolean;
+  onPause: (paused: boolean) => void;
   onCreated: (lessonId: Id<"lessons">) => void;
   /** Asks before the editor is switched away from unsaved work; false = cancel. */
   confirmLeaveEditor: () => boolean;
@@ -37,7 +40,7 @@ interface Props {
   readOnly?: boolean;
 }
 
-export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, onPush, onBlank, onCreated, confirmLeaveEditor, readOnly = false }: Props) {
+export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, onPush, onBlank, paused, onPause, onCreated, confirmLeaveEditor, readOnly = false }: Props) {
   const [showHidden, setShowHidden] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Set<Id<"lessons">>>(new Set());
@@ -241,9 +244,16 @@ export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, o
   return (
     <Sidebar side="left">
       <SidebarHeader className="border-b border-sidebar-border p-3">
-        <Button variant="outline" className="w-full" onClick={onBlank}>
-          <Eraser /> Blank Blackboard
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={onBlank}>
+            <Eraser /> Blank Blackboard
+          </Button>
+          <Hint label={paused ? "Show students the lesson again, where you left it" : "Hide the screen while you explain on the blackboard; nothing is lost"}>
+            <Button variant={paused ? "default" : "outline"} onClick={() => onPause(!paused)}>
+              {paused ? <Play /> : <Pause />} {paused ? "Resume" : "Pause"}
+            </Button>
+          </Hint>
+        </div>
         {!readOnly && (
           <Button
             variant="ghost"

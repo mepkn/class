@@ -3,7 +3,7 @@ import { mutation, query, type MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { checkPoll, type PollInput } from "./lib/pollRules";
 import { requireTeacher } from "./lib/requireTeacher";
-import { ensureRoom } from "./lib/room";
+import { ensureRoom, readRoom } from "./lib/room";
 import { deleteRun, tallyRun } from "./lib/runs";
 import { inlinePollsBySlide, startInlineRun } from "./lib/inlineRuns";
 import { clampSlide, splitSlides } from "./lib/slides";
@@ -38,6 +38,7 @@ export const submitVote = mutation({
     const run = await ctx.db.get(runId);
     if (!run || !run.open) throw new ConvexError("This poll is not open");
     if (run.revealed) throw new ConvexError("Voting is closed: results have been revealed");
+    if ((await readRoom(ctx))?.paused) throw new ConvexError("Voting is paused");
     if (!Number.isInteger(selectedOption) || selectedOption < 0 || selectedOption >= run.options.length) {
       throw new ConvexError("Invalid option");
     }
@@ -253,7 +254,7 @@ async function startSavedRun(ctx: MutationCtx, pollId: Id<"polls">) {
     open: true,
     revealed: false,
   });
-  await ctx.db.patch(room._id, { mode: "poll", activeRunId: runId, link: undefined, updatedAt: Date.now() });
+  await ctx.db.patch(room._id, { mode: "poll", activeRunId: runId, link: undefined, paused: undefined, updatedAt: Date.now() });
   return runId;
 }
 

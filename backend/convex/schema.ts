@@ -32,6 +32,9 @@ export default defineSchema({
     pushedAt: v.optional(v.number()), // set on Push to Room / Blank Blackboard (drives the duster wipe)
     dusterEnabled: v.optional(v.boolean()), // duster animation on students' screens (default on)
     slideMode: v.optional(slideMode), // global: how `---` slides advance (default "build")
+    // Pause: students see an empty board while the teacher explains on the real one; the
+    // lesson, slide, polls and link stay as they were, and voting waits. Pushes, polls and links unpause.
+    paused: v.optional(v.boolean()),
     pollNumbers: v.optional(pollNumbers), // global: revealed results show percentages (default) or vote counts
     currentSlide: v.optional(v.number()), // 0-based slide within currentContent (see convex/lib/slides.ts)
     boardColor: v.optional(v.string()), // id from convex/lib/boardColors.ts (default "green")

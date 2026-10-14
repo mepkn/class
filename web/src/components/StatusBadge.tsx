@@ -3,18 +3,23 @@ import { cn } from "@/lib/utils";
 interface Props {
   mode: "intro" | "lesson" | "poll" | undefined;
   lesson: { lessonNumber: string; title: string } | null;
+  /** Students see an empty board until you resume. */
+  paused?: boolean;
   /** Opens the live board in the editor. */
   onClick?: () => void;
   /** True while the editor is on the live board. */
   active?: boolean;
 }
 
-export function StatusBadge({ mode, lesson, onClick, active = false }: Props) {
+export function StatusBadge({ mode, lesson, paused = false, onClick, active = false }: Props) {
   let text: string;
   let tone: string;
   if (mode === undefined) {
     text = "Connecting…";
     tone = "border-border text-muted-foreground";
+  } else if (paused) {
+    text = "⏸ Paused · students see an empty board";
+    tone = "border-sky-500/50 bg-sky-500/10 text-sky-100";
   } else if (mode === "intro") {
     text = "⚪ Standby";
     tone = "border-border text-muted-foreground";

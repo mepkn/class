@@ -309,3 +309,33 @@ describe("deleting a lesson", () => {
     expect(left).toEqual({ polls: [bankPoll], links: [] });
   });
 });
+
+describe("pause", () => {
+  it("freezes voting until resumed, and keeps the poll", async () => {
+    const { t, teacher } = await setup();
+    const pollId = await teacher.mutation(api.polls.createPoll, quiz);
+    const runId = await teacher.mutation(api.polls.launchSaved, { pollId });
+    await teacher.mutation(api.classroom.setPaused, { paused: true });
+
+    const session = await t.query(api.classroom.getActiveSession, {});
+    expect(session.paused).toBe(true);
+    expect(session.poll?._id).toBe(runId);
+    await expect(t.mutation(api.polls.submitVote, { runId, voterToken: TOKEN, selectedOption: 1 })).rejects.toThrow(
+      "Voting is paused",
+    );
+
+    await teacher.mutation(api.classroom.setPaused, { paused: false });
+    await t.mutation(api.polls.submitVote, { runId, voterToken: TOKEN, selectedOption: 1 });
+  });
+
+  it("ends with a push or a new poll", async () => {
+    const { t, teacher } = await setup();
+    await teacher.mutation(api.classroom.setPaused, { paused: true });
+    await teacher.mutation(api.classroom.pushBlankBoard, {});
+    expect((await t.query(api.classroom.getActiveSession, {})).paused).toBe(false);
+
+    await teacher.mutation(api.classroom.setPaused, { paused: true });
+    await teacher.mutation(api.polls.launchSaved, { pollId: await teacher.mutation(api.polls.createPoll, quiz) });
+    expect((await t.query(api.classroom.getActiveSession, {})).paused).toBe(false);
+  });
+});

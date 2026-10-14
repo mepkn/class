@@ -45,6 +45,7 @@ export const getActiveSession = query({
         boardColor: DEFAULT_BOARD_COLOR as string,
         slideMode: "build" as "build" | "replace",
         pollNumbers: "percent" as "percent" | "count",
+        paused: false,
         poll: null,
         inlinePolls: [],
         link: null as string | null,
@@ -116,6 +117,7 @@ export const getActiveSession = query({
       boardColor: room.boardColor ?? DEFAULT_BOARD_COLOR,
       slideMode: room.slideMode ?? "build",
       pollNumbers: numbers,
+      paused: room.paused ?? false,
       poll,
       inlinePolls,
       link: room.link ?? null,
@@ -377,6 +379,7 @@ export const pushLesson = mutation({
       currentSlide: 0,
       activeRunId: undefined,
       link: undefined,
+      paused: undefined,
       updatedAt: Date.now(),
     });
     await syncInlineRuns(ctx, lesson.content, 0);
@@ -398,6 +401,7 @@ export const pushBlankBoard = mutation({
       currentSlide: 0,
       activeRunId: undefined,
       link: undefined,
+      paused: undefined,
       updatedAt: Date.now(),
     });
   },
@@ -452,6 +456,16 @@ export const setSlide = mutation({
   },
 });
 
+/** Pause: students see an empty board and can't vote, until Resume puts everything back. */
+export const setPaused = mutation({
+  args: { paused: v.boolean() },
+  handler: async (ctx, { paused }) => {
+    await requireTeacher(ctx);
+    const room = await ensureRoom(ctx);
+    await ctx.db.patch(room._id, { paused: paused || undefined, updatedAt: Date.now() });
+  },
+});
+
 /** Global: whether revealed poll results show percentages or vote counts. */
 export const setPollNumbers = mutation({
   args: { numbers: pollNumbers },
@@ -480,7 +494,7 @@ export const showLink = mutation({
     const link = normalizeLink(url);
     if (!link) throw new ConvexError("That isn't a web address (http or https)");
     const room = await ensureRoom(ctx);
-    await ctx.db.patch(room._id, { link, updatedAt: Date.now() });
+    await ctx.db.patch(room._id, { link, paused: undefined, updatedAt: Date.now() });
     return link;
   },
 });
