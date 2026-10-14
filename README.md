@@ -25,12 +25,17 @@ Live: https://class.pknspace.com
   `X-Frame-Options` / `frame-ancestors` headers when a lesson is saved, pushed or edited live
   (`backend/convex/links.ts`; live edits wait 10 s so half-typed links are skipped). Results stay in
   `linkChecks` for good; ↻ next to ⚠ New tab checks a link again.
+- **Class Remote** (`mobile/`, Android): the teacher runs the class from a phone. Tabs
+  **Lessons** (push a lesson or Blank Blackboard), **Board** (the live slide, your `%%` notes,
+  big Prev / Next), **Polls** (launch, live counts, Reveal, Close / Run again) and **Links**
+  (Show, Back to board). It only runs the class: lessons and polls are written on the web.
+  The screen stays on while it's open.
 
 ## Stack
 
 React 19, Vite, TypeScript (strict), Tailwind v4, shadcn/ui, Convex (reactive
 queries only), `@convex-dev/auth` (Password provider), react-markdown, KaTeX,
-highlight.js, and `@uiw/react-md-editor`.
+highlight.js, and `@uiw/react-md-editor`. The mobile remote: Expo, expo-router, NativeWind.
 
 ## Development
 
@@ -49,6 +54,17 @@ to skip the prompt. `npx convex dev` writes `backend/.env.local` (`CONVEX_DEPLOY
 `VITE_CONVEX_URL=http://127.0.0.1:3210`, `VITE_CONVEX_SITE_URL`). See `backend/.env.example`.
 
 Once `npm install` has run, everything works offline.
+
+### Class Remote (mobile app)
+
+```bash
+cd mobile && npm install
+adb reverse tcp:3210 tcp:3210   # a USB phone reaches the local backend (use the port in backend/.env.local)
+npm run android                 # builds the dev app onto the phone, then serves the JS
+```
+
+`scripts/expo.cjs` passes the backend's `VITE_CONVEX_URL` to Expo as `EXPO_PUBLIC_CONVEX_URL`,
+so `backend/.env.local` stays the only dev env file. Sign in with the teacher account.
 
 ### Creating the teacher account
 
@@ -153,6 +169,10 @@ votes, so teaching the same lesson to the next section is Blank Blackboard, then
 | `npm run setup:auth` (`backend/`) | Generate and set `JWT_PRIVATE_KEY` + `JWKS` |
 | `npm test` (`backend/`) | Backend tests (Vitest, convex-test): lesson numbers, slides, notes, polls |
 | `npm run check` (`backend/`) | Typecheck, lint and tests |
+| `npm run android` (`mobile/`) | Build the dev app onto a USB phone and serve the JS |
+| `npm run check` (`mobile/`) | Typecheck, lint and tests |
+| `npm run icons` (`mobile/`) | Redraw the app icons from the blackboard mark |
+| `scripts/build-android.sh preview local` | Preview APK on this Mac (`cloud` builds on EAS) |
 | `scripts/check.sh` | Every part's `check`; run before committing |
 | `scripts/deploy.sh` | Deploys the backend, builds and uploads the site |
 | `DRY_RUN=1 scripts/deploy.sh` | Same checks, but only previews the deploy and upload |
@@ -183,6 +203,13 @@ Deploy:
 DRY_RUN=1 scripts/deploy.sh   # checks, then preview the backend push and the upload
 scripts/deploy.sh             # checks, deploy backend/convex/, build with the production URL, upload
 ```
+
+### Class Remote APK
+
+The preview APK is built on GitHub Actions (`gh workflow run android-preview.yml`, saved as a
+run artifact for 90 days). One-time setup: `scripts/eas.sh init` (adds the EAS project id to
+`mobile/app.json`), `scripts/eas.sh env:create --environment preview --name EXPO_PUBLIC_CONVEX_URL --value https://<prod>.convex.cloud --visibility plaintext`,
+and the `EXPO_TOKEN` repository secret (the token in `mobile/.eas-token`).
 
 ## How it works
 

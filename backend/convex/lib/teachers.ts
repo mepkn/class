@@ -2,8 +2,8 @@
 export function teacherEmails(): string[] {
   return (process.env.ALLOWED_EMAILS ?? "")
     .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter((e) => e.length > 0);
+    .map((e: string) => e.trim().toLowerCase())
+    .filter((e: string) => e.length > 0);
 }
 
 export function isTeacherEmail(email: string | undefined | null): boolean {

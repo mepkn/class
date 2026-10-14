@@ -6,3 +6,12 @@ dist
 
 # local env files
 .env*.local
+
+# Expo (mobile/)
+.expo/
+expo-env.d.ts
+.metro-health-check*
+/mobile/ios
+/mobile/android
+/mobile/dist
+.eas-token

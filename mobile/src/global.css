@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dark only, like the teacher's web page: the class's slate green with a mint accent. */
+@layer base {
+  :root {
+    --background: 150 12% 8%;
+    --foreground: 60 10% 96%;
+    --card: 150 10% 11%;
+    --card-foreground: 60 10% 96%;
+    --popover: 150 10% 11%;
+    --popover-foreground: 60 10% 96%;
+    --primary: 155 60% 69%;
+    --primary-foreground: 160 40% 12%;
+    --brand: 155 60% 69%;
+    --secondary: 150 8% 17%;
+    --secondary-foreground: 60 10% 96%;
+    --muted: 150 7% 15%;
+    --muted-foreground: 150 5% 66%;
+    --accent: 150 9% 19%;
+    --accent-foreground: 60 10% 96%;
+    --destructive: 5 75% 55%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 145 55% 52%;
+    --warning: 38 92% 55%;
+    --board: 160 30% 14%;
+    --border: 150 8% 23%;
+    --input: 150 8% 23%;
+    --ring: 155 60% 69%;
+    --radius: 0.625rem;
+  }
+}

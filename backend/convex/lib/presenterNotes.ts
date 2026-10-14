@@ -57,3 +57,24 @@ export function showPresenterNotes(markdown: string): string {
     return `\n${lines.map((l) => `> ${l}`.trimEnd()).join("\n")}\n`;
   });
 }
+
+/**
+ * The Markdown cut at each note, in order: text parts (notes removed) and notes. The mobile
+ * remote shows each note where it was written.
+ */
+export function presenterNoteParts(markdown: string): { kind: "text" | "note"; text: string }[] {
+  const notes: string[] = [];
+  // A line no lesson contains marks where each note was.
+  const MARK = "\u0000note\u0000";
+  const marked = mapLines(markdown, (lines) => {
+    notes.push(lines.join("\n").trim());
+    return MARK;
+  });
+  const parts: { kind: "text" | "note"; text: string }[] = [];
+  marked.split(MARK).forEach((chunk, i) => {
+    if (chunk.trim()) parts.push({ kind: "text", text: chunk.trim() });
+    if (i < notes.length && notes[i]) parts.push({ kind: "note", text: notes[i] });
+  });
+  return parts;
+}
+

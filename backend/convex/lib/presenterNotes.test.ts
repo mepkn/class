@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { showPresenterNotes, stripPresenterNotes } from "./presenterNotes";
+import { presenterNoteParts, showPresenterNotes, stripPresenterNotes } from "./presenterNotes";
 
 describe("presenter notes", () => {
   it("removes %% lines for students", () => {
@@ -19,5 +19,20 @@ describe("presenter notes", () => {
   });
   it("hides an unclosed block to the end", () => {
     expect(stripPresenterNotes("a\n%%\nsecret")).toBe("a");
+  });
+});
+
+describe("presenterNoteParts", () => {
+  it("keeps each note where it was written", () => {
+    expect(presenterNoteParts("# A\n%% first\ntext\n%%\nblock\n%%\nend")).toEqual([
+      { kind: "text", text: "# A" },
+      { kind: "note", text: "first" },
+      { kind: "text", text: "text" },
+      { kind: "note", text: "block" },
+      { kind: "text", text: "end" },
+    ]);
+  });
+  it("leaves %% in code alone", () => {
+    expect(presenterNoteParts("```\n%%timeit\n```")).toEqual([{ kind: "text", text: "```\n%%timeit\n```" }]);
   });
 });
