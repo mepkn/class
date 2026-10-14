@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { Eye, Loader2, RotateCcw } from "lucide-react";
+import { Eye, Loader2, Presentation, RotateCcw } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -8,14 +8,15 @@ import { cn } from "@/lib/utils";
 import { errorMessage } from "@/lib/errorMessage";
 import type { InlinePoll } from "./StudentPollView";
 import { MarkdownRenderer } from "./MarkdownRenderer";
+import { SectionHeading } from "./PollManager";
 
 /** The current slide's inline polls: live counts, Reveal and Run again. */
 export function InlinePollControls({ polls, slide }: { polls: InlinePoll[]; slide: number }) {
   const here = polls.filter((p) => p.slide === slide);
   if (here.length === 0) return null;
   return (
-    <section className="space-y-2">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">Poll on this slide</p>
+    <section className="space-y-2 border-b pb-4">
+      <SectionHeading icon={<Presentation />} title="On this slide" note="Inline poll · closes when you move on" />
       {here.map((poll) => (
         <InlinePollCard key={poll._id} runId={poll._id} blockIndex={poll.blockIndex} />
       ))}

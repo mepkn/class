@@ -437,16 +437,13 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                       Classroom
                     </TabsTrigger>
                     <TabsTrigger value="poll" className="flex-1">
-                      Polls {session?.mode === "poll" && "•"}
+                      Polls {(session?.mode === "poll" || session?.inlinePolls.some((p) => p.slide === session.slide.index)) && "•"}
                     </TabsTrigger>
                   </TabsList>
                 </SidebarHeader>
                 <SidebarContent className="p-3">
                   <TabsContent value="monitor" className="mt-0 space-y-3">
                     <ScaledMonitor />
-                    {session?.mode === "lesson" && (
-                      <InlinePollControls polls={session.inlinePolls} slide={session.slide.index} />
-                    )}
                     <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
                       <Label htmlFor="duster" className="text-sm leading-snug">
                         Duster animation
@@ -521,14 +518,11 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                       </ToggleGroup>
                     </div>
                   </TabsContent>
-                  <TabsContent value="poll" className="mt-0">
+                  <TabsContent value="poll" className="mt-0 space-y-5">
+                    {session?.mode === "lesson" && (
+                      <InlinePollControls polls={session.inlinePolls} slide={session.slide.index} />
+                    )}
                     <PollManager activeRunId={session?.poll?._id ?? null} lesson={editingLesson ?? liveLesson} />
-                    <div className="mt-6">
-                      <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
-                        Student view
-                      </p>
-                      <ScaledMonitor compact />
-                    </div>
                   </TabsContent>
                 </SidebarContent>
               </Tabs>
@@ -582,7 +576,7 @@ function RightSidebarTrigger() {
  * Renders StudentStage at a fixed "projector" size (1280×800) and scales it
  * down to the column width, so the teacher sees exactly what students see.
  */
-function ScaledMonitor({ compact = false }: { compact?: boolean }) {
+function ScaledMonitor() {
   const BASE_W = 1280;
   const BASE_H = 800;
   const [width, setWidth] = useState(0);
@@ -598,7 +592,7 @@ function ScaledMonitor({ compact = false }: { compact?: boolean }) {
     <div
       ref={ref}
       className="relative w-full overflow-hidden rounded-lg border shadow-inner"
-      style={{ height: BASE_H * scale, maxHeight: compact ? 260 : undefined }}
+      style={{ height: BASE_H * scale }}
     >
       {scale > 0 && (
         <div

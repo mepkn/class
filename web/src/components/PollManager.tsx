@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import {
   ArrowDown,
   ArrowUp,
-  BarChart3,
+  BookOpen,
   Eye,
   Library,
   Link2,
@@ -63,11 +63,7 @@ export function PollManager({ activeRunId, lesson }: Props) {
   const onEdit = (poll: Doc<"polls">) => setEditing({ kind: "edit", poll });
 
   return (
-    <section className="space-y-5">
-      <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        <BarChart3 className="size-4" /> Polls
-      </h2>
-
+    <section className="space-y-5 [&>*:first-child]:border-t-0 [&>*:first-child]:pt-0">
       {activeRunId && <ActiveRun runId={activeRunId} />}
 
       {editing && (
@@ -252,11 +248,9 @@ function LessonPolls({
   const deletePoll = useMutation(api.polls.deletePoll);
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <p className="truncate text-xs uppercase tracking-wide text-muted-foreground">
-          Lesson {lesson.lessonNumber} · {lesson.title}
-        </p>
+    <div className="space-y-2 border-t pt-4">
+      <div className="flex items-start justify-between gap-2">
+        <SectionHeading icon={<BookOpen />} title="This lesson" note={`${lesson.lessonNumber} · ${lesson.title}`} />
         <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onNew}>
           <Plus /> New
         </Button>
@@ -346,11 +340,9 @@ function PollBank({
   const inLesson = new Set(linked?.saved.map((p) => p._id));
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
-          <Library className="size-3.5" /> Poll bank
-        </p>
+    <div className="space-y-2 border-t pt-4">
+      <div className="flex items-start justify-between gap-2">
+        <SectionHeading icon={<Library />} title="Poll bank" note="Reusable in any lesson" />
         <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onNew}>
           <Plus /> New
         </Button>
@@ -402,6 +394,18 @@ function PollBank({
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+/** A Polls-tab section title, with an optional muted line under it. */
+export function SectionHeading({ icon, title, note }: { icon: React.ReactNode; title: string; note?: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground [&_svg]:size-3.5">
+        {icon} {title}
+      </p>
+      {note && <p className="mt-0.5 truncate text-sm">{note}</p>}
     </div>
   );
 }
