@@ -7,7 +7,6 @@ import { router } from "expo-router";
 import { Eraser, EyeOff, Lock, LogOut } from "lucide-react-native";
 import { useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, View } from "react-native";
-import { CmpButton } from "@/components/cmp/cmp-button";
 import { CmpConfirmDialog } from "@/components/cmp/cmp-confirm-dialog";
 import { CmpIcon } from "@/components/cmp/cmp-icon";
 import { CmpText } from "@/components/cmp/cmp-text";
@@ -22,6 +21,7 @@ export default function LessonsScreen() {
   const session = useQuery(api.classroom.getActiveSession);
   const pushLesson = useMutation(api.classroom.pushLesson);
   const pushBlankBoard = useMutation(api.classroom.pushBlankBoard);
+  const me = useQuery(api.auth.me);
   const { signOut } = useAuthActions();
   const { busy, error, act } = useAct();
   const [pending, setPending] = useState<Pending | null>(null);
@@ -78,12 +78,19 @@ export default function LessonsScreen() {
             </Pressable>
           );
         }}
-        ListFooterComponent={
-          <View className="mt-6 items-start">
-            <CmpButton variant="ghost" size="sm" icon={LogOut} label="Sign out" onPress={() => void signOut()} />
-          </View>
-        }
       />
+      {/* As on the web: pinned at the bottom, red, with the signed-in email. */}
+      <View className="border-t border-border p-3">
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => void signOut()}
+          className="flex-row items-center gap-2 rounded-md px-3 py-2.5 active:bg-red-500/10">
+          <CmpIcon as={LogOut} size={16} className="text-red-400" />
+          <CmpText className="flex-1 text-sm font-medium text-red-400" numberOfLines={1}>
+            Sign out{me?.email ? ` (${me.email})` : ""}
+          </CmpText>
+        </Pressable>
+      </View>
       <CmpConfirmDialog
         open={pending !== null}
         onOpenChange={(open) => !open && setPending(null)}
