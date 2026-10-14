@@ -463,9 +463,9 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                     </TabsTrigger>
                   </TabsList>
                 </SidebarHeader>
-                <SidebarContent className="p-3">
+                <SidebarContent className="gap-3 p-3">
+                  <ScaledMonitor />
                   <TabsContent value="monitor" className="mt-0 space-y-3">
-                    <ScaledMonitor />
                     <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
                       <Label htmlFor="duster" className="text-sm leading-snug">
                         Duster animation
