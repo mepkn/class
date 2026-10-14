@@ -77,6 +77,9 @@ export function TeacherDashboard({ email }: { email: string | null }) {
     session?.mode === "lesson" && liveLesson ? { lessonId: liveLesson._id } : "skip",
   );
 
+  const linksLesson = editingLesson ?? liveLesson;
+  const linksLessonDoc = linksLesson?._id === editingLesson?._id ? editingLessonDoc : liveLessonDoc;
+
   // ---- Unsaved-changes protection -------------------------------------------
   // The editor reports unsaved work here; anything that would discard it asks first.
   const unsavedRef = useRef<string | null>(null);
@@ -460,8 +463,18 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                 <SidebarContent className="p-3">
                   <TabsContent value="monitor" className="mt-0 space-y-3">
                     <ScaledMonitor />
-                    {session?.mode === "lesson" && (
-                      <LinkControls link={session.link} boardContent={session.currentContent} blocked={session.blockedLinks} />
+                    {session && liveSource !== undefined && (
+                      <LinkControls
+                        link={session.link}
+                        // Like the Polls tab: the lesson being edited, else the live one; the live
+                        // lesson (or the scratchpad) uses the board's source, with live edits.
+                        {...(linksLesson && linksLesson._id !== liveLessonId
+                          ? { content: linksLessonDoc?.content ?? "", source: `${linksLesson.lessonNumber} · ${linksLesson.title}` }
+                          : {
+                              content: liveSource,
+                              source: liveLesson ? `${liveLesson.lessonNumber} · ${liveLesson.title} (live)` : "the live board",
+                            })}
+                      />
                     )}
                     <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
                       <Label htmlFor="duster" className="text-sm leading-snug">

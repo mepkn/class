@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useAction, useMutation } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { ExternalLink, Globe, Loader2, RotateCw, TriangleAlert, Undo2 } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { linksIn } from "@convex/lib/links";
+import { splitSlides } from "@convex/lib/slides";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { errorMessage } from "@/lib/errorMessage";
@@ -10,21 +11,29 @@ import { errorMessage } from "@/lib/errorMessage";
 interface Props {
   /** The link open on every student's screen, if any. */
   link: string | null;
-  /** What students can see right now (their links are offered as one-click Show buttons). */
-  boardContent: string;
-  /** Board links whose site refuses the in-page panel (students get a new tab). */
-  blocked: string[];
+  /** The lesson's whole Markdown, every slide (its links are offered as one-click Show buttons). */
+  content: string;
+  /** Shown next to the list: the lesson the links come from. */
+  source: string;
 }
 
 /** Classroom tab: open a web page on every student's screen, and bring everyone back to the board. */
-export function LinkControls({ link, boardContent, blocked }: Props) {
+export function LinkControls({ link, content, source }: Props) {
   const showLink = useMutation(api.classroom.showLink);
   const closeLinks = useMutation(api.classroom.closeLinks);
   const checkLink = useAction(api.links.checkLink);
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const onBoard = linksIn(boardContent);
+  // Each link once, with the first slide it's on.
+  const seen = new Set<string>();
+  const inLesson = splitSlides(content).flatMap((part, slide) =>
+    linksIn(part)
+      .filter((l) => !seen.has(l.url) && seen.add(l.url))
+      .map((l) => ({ ...l, slide })),
+  );
+  const slides = splitSlides(content).length;
+  const blocked = useQuery(api.links.blocked, inLesson.length > 0 ? { urls: inLesson.map((l) => l.url) } : "skip") ?? [];
 
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true);
@@ -64,12 +73,15 @@ export function LinkControls({ link, boardContent, blocked }: Props) {
       >
         <Undo2 /> Back to board
       </Button>
-      {onBoard.length > 0 && (
+      <p className="truncate pt-1 text-xs text-muted-foreground">In {source}</p>
+      {inLesson.length === 0 && <p className="text-xs text-muted-foreground/70">No links in this lesson.</p>}
+      {inLesson.length > 0 && (
         <ul className="space-y-1">
-          {onBoard.map((l) => (
+          {inLesson.map((l) => (
             <li key={l.url} className="flex items-center gap-1.5 text-xs">
               <span className="min-w-0 flex-1 truncate" title={l.url}>
                 {l.text}
+                {slides > 1 && <span className="ml-1 text-muted-foreground">· slide {l.slide + 1}</span>}
               </span>
               <a
                 href={l.url}

@@ -1,5 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import { action, internalAction, internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { action, internalAction, internalMutation, internalQuery, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireTeacher } from "./lib/requireTeacher";
 import { readRoom } from "./lib/room";
@@ -110,5 +110,22 @@ export const checkLink = action({
     const ok = await embeddable(link);
     await ctx.runMutation(internal.links.record, { url: link, embeddable: ok });
     return ok;
+  },
+});
+
+/** Teacher only: which of these links refuse the in-page panel (unchecked ones aren't listed). */
+export const blocked = query({
+  args: { urls: v.array(v.string()) },
+  handler: async (ctx, { urls }) => {
+    await requireTeacher(ctx);
+    const out: string[] = [];
+    for (const url of urls.slice(0, 200)) {
+      const check = await ctx.db
+        .query("linkChecks")
+        .withIndex("by_url", (q) => q.eq("url", url))
+        .first();
+      if (check && !check.embeddable) out.push(url);
+    }
+    return out;
   },
 });
