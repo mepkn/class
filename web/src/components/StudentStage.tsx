@@ -45,9 +45,6 @@ export function StudentStage({ readOnly = false, className }: Props) {
         <div className="flex h-full items-center justify-center">
           <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
-      ) : session.paused ? (
-        // Paused: the teacher is at the real blackboard. Everything comes back on Resume.
-        <p className="animate-fade-in pt-24 text-center text-lg text-muted-foreground/60">Nothing to see here.</p>
       ) : (
         // `key` gives each mode its own fade-in; content updates within a mode
         // re-render in place (no remount → no layout jump).
@@ -87,6 +84,13 @@ export function StudentStage({ readOnly = false, className }: Props) {
             <LinkPanel key={session.link} url={session.link} />
           ) : (
             shownOwn && <LinkPanel key={shownOwn} url={shownOwn} onClose={() => setOwnLink(null)} />
+          )}
+          {session.paused && (
+            // Paused: the teacher is at the real blackboard. The board stays mounted underneath,
+            // so Resume returns to the same scroll position (and any link a student had open).
+            <div className="animate-fade-in absolute inset-0 z-30 bg-board">
+              <p className="pt-24 text-center text-lg text-muted-foreground/60">Nothing to see here.</p>
+            </div>
           )}
         </LinkOpenContext.Provider>
       )}
