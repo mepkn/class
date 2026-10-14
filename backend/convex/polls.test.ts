@@ -77,7 +77,11 @@ describe("running a saved poll", () => {
 
     await teacher.mutation(api.polls.revealRun, { runId });
     session = await t.query(api.classroom.getActiveSession, {});
-    expect(session.poll?.results).toEqual({ correctIndex: 1, counts: [0, 1], total: 1 });
+    expect(session.poll?.results).toEqual({ correctIndex: 1, numbers: "percent", counts: [0, 1], total: 1 });
+
+    await teacher.mutation(api.classroom.setPollNumbers, { numbers: "count" });
+    session = await t.query(api.classroom.getActiveSession, {});
+    expect(session.poll?.results?.numbers).toBe("count");
     await expect(
       t.mutation(api.polls.submitVote, { runId, voterToken: "voter-token-2", selectedOption: 0 }),
     ).rejects.toThrow();
@@ -163,7 +167,7 @@ describe("inline polls", () => {
     await t.mutation(api.polls.submitVote, { runId, voterToken: TOKEN, selectedOption: 1 });
     await teacher.mutation(api.classroom.setSlide, { index: 2 });
     const s = await session();
-    expect(s.inlinePolls[0].results).toEqual({ correctIndex: 1, counts: [0, 1], total: 1 });
+    expect(s.inlinePolls[0].results).toEqual({ correctIndex: 1, numbers: "percent", counts: [0, 1], total: 1 });
     await expect(
       t.mutation(api.polls.submitVote, { runId, voterToken: "voter-token-2", selectedOption: 0 }),
     ).rejects.toThrow();

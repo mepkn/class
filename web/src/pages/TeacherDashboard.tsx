@@ -54,6 +54,7 @@ export function TeacherDashboard({ email }: { email: string | null }) {
   const setDusterAnimation = useMutation(api.classroom.setDusterAnimation);
   const setBoardColor = useMutation(api.classroom.setBoardColor);
   const setSlideMode = useMutation(api.classroom.setSlideMode);
+  const setPollNumbers = useMutation(api.classroom.setPollNumbers);
   const closeLinks = useMutation(api.classroom.closeLinks);
 
   const [targetRef, setTargetRef] = useState<TargetRef>({ kind: "live", nonce: 0 });
@@ -464,6 +465,37 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                           ] as const
                         ).map(([mode, label, hint]) => (
                           <ToggleGroupItem key={mode} value={mode} title={hint} className="flex-1 text-xs data-[state=on]:font-medium">
+                            {label}
+                          </ToggleGroupItem>
+                        ))}
+                      </ToggleGroup>
+                    </div>
+                    <div className="rounded-lg border px-3 py-2">
+                      <p className="text-sm font-medium">
+                        Poll results
+                        <span className="block text-xs font-normal text-muted-foreground">
+                          What each answer shows once you reveal it
+                        </span>
+                      </p>
+                      <ToggleGroup
+                        type="single"
+                        variant="outline"
+                        size="sm"
+                        aria-label="How poll results show"
+                        value={session?.pollNumbers ?? "percent"}
+                        disabled={session === undefined}
+                        onValueChange={(numbers) =>
+                          numbers && act(() => setPollNumbers({ numbers: numbers as "percent" | "count" }))
+                        }
+                        className="mt-2 w-full"
+                      >
+                        {(
+                          [
+                            ["percent", "Percentage", "Each answer shows its share of the votes"],
+                            ["count", "Votes", "Each answer shows how many students picked it"],
+                          ] as const
+                        ).map(([numbers, label, hint]) => (
+                          <ToggleGroupItem key={numbers} value={numbers} title={hint} className="flex-1 text-xs data-[state=on]:font-medium">
                             {label}
                           </ToggleGroupItem>
                         ))}

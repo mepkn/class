@@ -12,7 +12,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { BOARD_COLORS, DEFAULT_BOARD_COLOR } from "./lib/boardColors";
 import { stripPresenterNotes } from "./lib/presenterNotes";
 import { clampSlide, splitSlides } from "./lib/slides";
-import { slideMode } from "./schema";
+import { pollNumbers, slideMode } from "./schema";
 import { requireTeacher } from "./lib/requireTeacher";
 import { assertContentSize, ensureRoom, readRoom } from "./lib/room";
 import { clearRuns, tallyRun } from "./lib/runs";
@@ -44,6 +44,7 @@ export const getActiveSession = query({
         dusterEnabled: true,
         boardColor: DEFAULT_BOARD_COLOR as string,
         slideMode: "build" as "build" | "replace",
+        pollNumbers: "percent" as "percent" | "count",
         poll: null,
         inlinePolls: [],
         link: null as string | null,
@@ -51,6 +52,8 @@ export const getActiveSession = query({
         blockedLinks: [] as string[],
       };
     }
+
+    const numbers = room.pollNumbers ?? "percent";
 
     // A saved poll launched by hand: it replaces the lesson on screen.
     let poll = null;
@@ -63,7 +66,7 @@ export const getActiveSession = query({
           options: run.options,
           showResults: run.revealed,
           results: run.revealed
-            ? { correctIndex: run.correctIndex ?? null, ...(await tallyRun(ctx, run)) }
+            ? { correctIndex: run.correctIndex ?? null, numbers, ...(await tallyRun(ctx, run)) }
             : null,
         };
       }
@@ -94,7 +97,7 @@ export const getActiveSession = query({
         options: run.options,
         showResults: run.revealed,
         results: run.revealed
-          ? { correctIndex: run.correctIndex ?? null, ...(await tallyRun(ctx, run)) }
+          ? { correctIndex: run.correctIndex ?? null, numbers, ...(await tallyRun(ctx, run)) }
           : null,
       })),
     );
@@ -112,6 +115,7 @@ export const getActiveSession = query({
       dusterEnabled: room.dusterEnabled ?? true,
       boardColor: room.boardColor ?? DEFAULT_BOARD_COLOR,
       slideMode: room.slideMode ?? "build",
+      pollNumbers: numbers,
       poll,
       inlinePolls,
       link: room.link ?? null,
@@ -445,6 +449,16 @@ export const setSlide = mutation({
       await syncInlineRuns(ctx, room.currentContent, next);
     }
     return next;
+  },
+});
+
+/** Global: whether revealed poll results show percentages or vote counts. */
+export const setPollNumbers = mutation({
+  args: { numbers: pollNumbers },
+  handler: async (ctx, { numbers }) => {
+    await requireTeacher(ctx);
+    const room = await ensureRoom(ctx);
+    await ctx.db.patch(room._id, { pollNumbers: numbers, updatedAt: Date.now() });
   },
 });
 

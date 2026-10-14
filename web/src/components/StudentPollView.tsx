@@ -139,7 +139,7 @@ export function StudentPollView({ poll, readOnly = false, inline = false }: Prop
                   <span className="relative flex items-center gap-2 tabular-nums">
                     {isCorrect && <CircleCheckBig className="size-6 text-success" />}
                     {isMine && !isCorrect && <span className="text-sm text-muted-foreground">your vote</span>}
-                    <span className="text-base text-muted-foreground">{pct}%</span>
+                    <span className="text-base text-muted-foreground">{results.numbers === "count" ? count : `${pct}%`}</span>
                   </span>
                 )}
               </button>

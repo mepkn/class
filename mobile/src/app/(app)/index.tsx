@@ -205,7 +205,7 @@ function PollResults({ poll }: { poll: InlinePoll }) {
               <CmpText className="flex-1 text-lg">{option}</CmpText>
               {correct && <CmpIcon as={CircleCheckBig} size={20} className="text-success" />}
               <CmpText className="text-muted-foreground" style={{ fontVariant: ["tabular-nums"] }}>
-                {pct}%
+                {results.numbers === "count" ? results.counts[i] : `${pct}%`}
               </CmpText>
             </View>
           );

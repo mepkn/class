@@ -4,6 +4,7 @@ import { authTables } from "@convex-dev/auth/server";
 
 // "build": each step adds the next slide under the previous ones. "replace": one slide at a time.
 export const slideMode = v.union(v.literal("build"), v.literal("replace"));
+export const pollNumbers = v.union(v.literal("percent"), v.literal("count"));
 
 export default defineSchema({
   ...authTables,
@@ -31,6 +32,7 @@ export default defineSchema({
     pushedAt: v.optional(v.number()), // set on Push to Room / Blank Blackboard (drives the duster wipe)
     dusterEnabled: v.optional(v.boolean()), // duster animation on students' screens (default on)
     slideMode: v.optional(slideMode), // global: how `---` slides advance (default "build")
+    pollNumbers: v.optional(pollNumbers), // global: revealed results show percentages (default) or vote counts
     currentSlide: v.optional(v.number()), // 0-based slide within currentContent (see convex/lib/slides.ts)
     boardColor: v.optional(v.string()), // id from convex/lib/boardColors.ts (default "green")
     // A web page the teacher opened on every student's screen (only the teacher closes it).
