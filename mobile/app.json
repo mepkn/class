@@ -41,7 +41,10 @@
       "reactCompiler": true
     },
     "extra": {
-      "router": {}
+      "router": {},
+      "eas": {
+        "projectId": "74fe7641-2c4a-4417-98e6-8485ec7614a6"
+      }
     },
     "owner": "mepkn",
     "platforms": [
