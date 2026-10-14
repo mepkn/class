@@ -196,6 +196,7 @@ function LessonCanvas({
 
   useEffect(() => {
     if (blocks.length > shown.current) {
+      // Scrolled just into view, but a quarter of the screen above the bottom edge.
       lastRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
     shown.current = blocks.length;
@@ -203,7 +204,8 @@ function LessonCanvas({
 
   return (
     <div className="h-full overflow-y-auto [scrollbar-gutter:stable]">
-      <article className="mx-auto w-full max-w-4xl px-5 py-8 sm:px-10 sm:py-12">
+      {/* Bottom room so the last slide can sit above the bottom edge. */}
+      <article className="mx-auto w-full max-w-4xl px-5 pb-[25svh] pt-8 sm:px-10 sm:pt-12">
         {blocks.length === 0 ? (
           <p className="pt-24 text-center text-lg text-muted-foreground/60">
             The board is clean.
@@ -213,7 +215,7 @@ function LessonCanvas({
             <div
               key={i}
               ref={i === blocks.length - 1 ? lastRef : undefined}
-              className={cn(i > 0 && "mt-6 sm:mt-8", i > 0 && "animate-fade-in")}
+              className={cn("scroll-mb-[25svh]", i > 0 && "mt-6 sm:mt-8", i > 0 && "animate-fade-in")}
             >
               <PollSlotContext.Provider
                 value={(blockIndex) => {
