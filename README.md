@@ -14,6 +14,8 @@ Live: https://class.pknspace.com
 - **Polls** written ahead: inline in a lesson (they start when their slide is shown), in a
   lesson's Polls tab, or in a reusable poll bank. Quiz or opinion polls with 2–6 options.
   Votes are never kept: each class starts from zero.
+- **Presenter notes** only the teacher sees: `%% note` for one line, or lines between two
+  `%%` lines for a longer note.
 
 ## Stack
 
@@ -114,9 +116,9 @@ What is $F$ if $m = 2$ and $a = 3$?
 - It starts when its slide is shown and appears under the slide's text (in build-up mode,
   under the earlier slides too).
 - Moving to another slide closes voting and reveals the results; in build-up mode they stay
-  on the board. Going back shows them again; **Run again** (Classroom tab) clears the votes
+  on the board. Going back shows them again; **Run again** (Polls tab) clears the votes
   and reopens voting.
-- The Classroom tab shows the current slide's poll with live counts and **Reveal**.
+- The Polls tab shows the current slide's poll with live counts and **Reveal**.
 - Editing a poll on the live board starts it again.
 
 **Saved polls** live in the Polls tab:

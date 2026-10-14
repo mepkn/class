@@ -73,7 +73,7 @@ const quickInsert: ICommand[] = [
     "note",
     "Insert presenter note (only you see it)",
     <NotebookPen className="size-3.5" />,
-    (sel) => `\n%% ${sel || "note for yourself — students never see this"}\n`,
+    (sel) => (sel.includes("\n") ? `\n%%\n${sel}\n%%\n` : `\n%% ${sel || "note for yourself — students never see this"}\n`),
   ),
   insertCommand(
     "poll",
@@ -401,7 +401,7 @@ export function LiveEditor({
           extraCommands={extraToolbar}
           textareaProps={{
             placeholder:
-              "Write Markdown, $math$, ```python code… Lines starting with %% are notes only you see.",
+              "Write Markdown, $math$, ```python code… Lines starting with %%, or between two %% lines, are notes only you see.",
             spellCheck: false,
           }}
           components={{

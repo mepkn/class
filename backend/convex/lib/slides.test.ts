@@ -16,6 +16,9 @@ describe("splitSlides", () => {
     const md = "````md\n```\n\n---\n```\n````";
     expect(splitSlides(md)).toEqual([md]);
   });
+  it("never splits inside a %% note block", () => {
+    expect(splitSlides("a\n\n%%\nnote\n\n---\n\nmore\n%%\n\n---\n\nb")).toHaveLength(2);
+  });
   it("ignores a leading separator", () => {
     expect(splitSlides("---\n\n# One")).toEqual(["# One"]);
   });
