@@ -2,7 +2,7 @@ import { api } from "@convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import { BarChart3, ChevronLeft, ChevronRight, Eraser, Globe, NotebookPen, Undo2 } from "lucide-react-native";
+import { BarChart3, ChevronLeft, ChevronRight, CircleCheckBig, Eraser, Globe, NotebookPen, TriangleAlert, Undo2 } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { CmpButton } from "@/components/cmp/cmp-button";
@@ -11,6 +11,7 @@ import { CmpIcon } from "@/components/cmp/cmp-icon";
 import { CmpText } from "@/components/cmp/cmp-text";
 import { MarkdownView } from "@/components/markdown";
 import { ErrorText } from "@/components/section";
+import type { PollBlock } from "@convex/lib/inlinePolls";
 import { lessonSlides, type SlidePart } from "@/lib/slide";
 import { useAct } from "@/lib/use-act";
 
@@ -158,10 +159,42 @@ export default function BoardScreen() {
 
 function Part({ part }: { part: SlidePart }) {
   if (part.kind === "text") return <MarkdownView content={part.text} onBoard />;
+  if (part.kind === "poll") return <PollPreview block={part.block} />;
   return (
     <View className="flex-row gap-2 rounded-lg border-l-2 border-primary bg-card px-3 py-2">
       <CmpIcon as={NotebookPen} size={16} className="mt-0.5 text-primary" />
       <CmpText className="flex-1">{part.text}</CmpText>
+    </View>
+  );
+}
+
+/** An inline poll as the web's teaching preview shows it: the answer marked, nothing live. */
+function PollPreview({ block }: { block: PollBlock | undefined }) {
+  return (
+    <View className="gap-3 rounded-lg border border-dashed border-primary/50 p-4">
+      <CmpText className="text-xs font-medium uppercase tracking-wide text-primary">Poll · starts on this slide</CmpText>
+      {!block || "error" in block ? (
+        <View className="flex-row items-center gap-2">
+          <CmpIcon as={TriangleAlert} size={16} className="text-destructive" />
+          <CmpText className="flex-1 text-sm text-destructive">{block ? block.error : "Empty poll"}</CmpText>
+        </View>
+      ) : (
+        <>
+          <MarkdownView content={block.poll.question} onBoard />
+          <View className="gap-1.5">
+            {block.poll.options.map((option, i) => (
+              <View key={i} className="flex-row items-center gap-2 rounded border border-border px-3 py-1.5">
+                <CmpText className="font-semibold">{String.fromCharCode(65 + i)}.</CmpText>
+                <CmpText className="flex-1">{option}</CmpText>
+                {i === block.poll.correctIndex && <CmpIcon as={CircleCheckBig} size={16} className="text-success" />}
+              </View>
+            ))}
+          </View>
+          {block.poll.correctIndex === undefined && (
+            <CmpText className="text-xs text-muted-foreground">Opinion poll (no correct answer)</CmpText>
+          )}
+        </>
+      )}
     </View>
   );
 }
