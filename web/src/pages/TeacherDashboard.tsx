@@ -9,8 +9,6 @@ import {
   PanelLeft,
   PanelRight,
   Presentation,
-  SkipBack,
-  SkipForward,
   Undo2,
 } from "lucide-react";
 import { api } from "@convex/_generated/api";
@@ -154,39 +152,6 @@ export function TeacherDashboard({ email }: { email: string | null }) {
   };
   const teachingRef = useRef(teaching);
   teachingRef.current = teaching;
-
-  // ---- Next lesson ---------------------------------------------------------
-  // The next pushable lesson (unlocked, not hidden) after the last pushed one, in sidebar
-  // order (2 → 2.1 → 2.1.1 → 3). Nothing pushed yet → the first pushable lesson.
-  const pushable = (l: LessonSummary) => !l.isLocked && !l.isHidden;
-  const liveIndex = lessons && liveLessonId ? lessons.findIndex((l) => l._id === liveLessonId) : -1;
-  const nextLesson = lessons ? (lessons.slice(liveIndex + 1).find(pushable) ?? null) : null;
-  // Previous: only meaningful once something has been pushed.
-  const prevLesson =
-    lessons && liveIndex > 0 ? (lessons.slice(0, liveIndex).reverse().find(pushable) ?? null) : null;
-  const pushNext = () => {
-    if (nextLesson) void onPush(nextLesson);
-  };
-  const pushPrev = () => {
-    if (prevLesson) void onPush(prevLesson);
-  };
-  const lessonNavRef = useRef({ pushNext, pushPrev });
-  lessonNavRef.current = { pushNext, pushPrev };
-  useEffect(() => {
-    // Teaching mode only: ⌘/Ctrl+Shift+→ (or +Enter) next lesson, ⌘/Ctrl+Shift+← previous.
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (!teachingRef.current || !e.shiftKey || !(e.metaKey || e.ctrlKey)) return;
-      if (e.key === "Enter" || e.key === "ArrowRight") {
-        e.preventDefault();
-        lessonNavRef.current.pushNext();
-      } else if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        lessonNavRef.current.pushPrev();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
 
   // ---- Slides ---------------------------------------------------------------
   const setSlide = useMutation(api.classroom.setSlide);
@@ -372,43 +337,6 @@ export function TeacherDashboard({ email }: { email: string | null }) {
 
               {teaching && (
                 <>
-                  {/* Bottom-left: lessons */}
-                  <div
-                    className="teach-fab absolute left-3 z-30 flex items-center gap-0.5 rounded-full border bg-card/95 p-1 shadow-lg backdrop-blur sm:left-5 [&_svg]:size-4"
-                    aria-label="Lessons"
-                  >
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-8 rounded-full"
-                      disabled={!prevLesson}
-                      onClick={pushPrev}
-                      aria-label={prevLesson ? `Push previous lesson: ${prevLesson.lessonNumber} — ${prevLesson.title}` : "No previous lesson"}
-                      title={
-                        prevLesson
-                          ? `Previous: ${prevLesson.lessonNumber} — ${prevLesson.title} (⌘/Ctrl+Shift+←)`
-                          : "No earlier unlocked lesson"
-                      }
-                    >
-                      <SkipBack />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-8 rounded-full"
-                      disabled={!nextLesson}
-                      onClick={pushNext}
-                      aria-label={nextLesson ? `Push next lesson: ${nextLesson.lessonNumber} — ${nextLesson.title}` : "No next lesson"}
-                      title={
-                        nextLesson
-                          ? `Next: ${nextLesson.lessonNumber} — ${nextLesson.title} (⌘/Ctrl+Shift+→)`
-                          : "No more unlocked lessons after this one"
-                      }
-                    >
-                      <SkipForward />
-                    </Button>
-                  </div>
-
                   {/* Bottom-right: slides (only when the live lesson has them) */}
                   {slide && slide.count > 1 && (
                     <div
