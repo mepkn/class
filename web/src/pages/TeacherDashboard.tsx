@@ -453,29 +453,19 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                 <SidebarHeader className="border-b border-sidebar-border p-3">
                   <TabsList className="w-full">
                     <TabsTrigger value="monitor" className="flex-1">
-                      Classroom {session?.link && "•"}
+                      Classroom
                     </TabsTrigger>
                     <TabsTrigger value="poll" className="flex-1">
                       Polls {(session?.mode === "poll" || session?.inlinePolls.some((p) => p.slide === session.slide.index)) && "•"}
+                    </TabsTrigger>
+                    <TabsTrigger value="links" className="flex-1">
+                      Links {session?.link && "•"}
                     </TabsTrigger>
                   </TabsList>
                 </SidebarHeader>
                 <SidebarContent className="p-3">
                   <TabsContent value="monitor" className="mt-0 space-y-3">
                     <ScaledMonitor />
-                    {session && liveSource !== undefined && (
-                      <LinkControls
-                        link={session.link}
-                        // Like the Polls tab: the lesson being edited, else the live one; the live
-                        // lesson (or the scratchpad) uses the board's source, with live edits.
-                        {...(linksLesson && linksLesson._id !== liveLessonId
-                          ? { content: linksLessonDoc?.content ?? "", source: `${linksLesson.lessonNumber} · ${linksLesson.title}` }
-                          : {
-                              content: liveSource,
-                              source: liveLesson ? `${liveLesson.lessonNumber} · ${liveLesson.title} (live)` : "the live board",
-                            })}
-                      />
-                    )}
                     <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
                       <Label htmlFor="duster" className="text-sm leading-snug">
                         Duster animation
@@ -555,6 +545,21 @@ export function TeacherDashboard({ email }: { email: string | null }) {
                       <InlinePollControls polls={session.inlinePolls} slide={session.slide.index} />
                     )}
                     <PollManager activeRunId={session?.poll?._id ?? null} lesson={editingLesson ?? liveLesson} />
+                  </TabsContent>
+                  <TabsContent value="links" className="mt-0">
+                    {session && liveSource !== undefined && (
+                      <LinkControls
+                        link={session.link}
+                        // Like the Polls tab: the lesson being edited, else the live one; the live
+                        // lesson (or the scratchpad) uses the board's source, with live edits.
+                        {...(linksLesson && linksLesson._id !== liveLessonId
+                          ? { content: linksLessonDoc?.content ?? "", source: `${linksLesson.lessonNumber} · ${linksLesson.title}` }
+                          : {
+                              content: liveSource,
+                              source: liveLesson ? `${liveLesson.lessonNumber} · ${liveLesson.title} (live)` : "the live board",
+                            })}
+                      />
+                    )}
                   </TabsContent>
                 </SidebarContent>
               </Tabs>
