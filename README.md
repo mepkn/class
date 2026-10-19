@@ -206,8 +206,9 @@ scripts/deploy.sh             # checks, deploy backend/convex/, build with the p
 
 ### Class Remote APK
 
-The preview APK is built on GitHub Actions (`gh workflow run android-preview.yml`, saved as a
-run artifact for 90 days). One-time setup: `scripts/eas.sh init` (adds the EAS project id to
+The preview APK is built on GitHub Actions (`gh workflow run release.yml`) and attached as
+`class.apk` to a GitHub Release, so
+`https://github.com/mepkn/class/releases/latest/download/class.apk` is the download link. One-time setup: `scripts/eas.sh init` (adds the EAS project id to
 `mobile/app.json`), `scripts/eas.sh env:create --environment preview --name EXPO_PUBLIC_CONVEX_URL --value https://<prod>.convex.cloud --visibility plaintext`,
 and the `EXPO_TOKEN` repository secret (the token in `mobile/.eas-token`).
 
