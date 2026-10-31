@@ -3,6 +3,7 @@ import { Password } from "@convex-dev/auth/providers/Password";
 import { ConvexError } from "convex/values";
 import { query } from "./_generated/server";
 import { isTeacherEmail } from "./lib/teachers";
+import { ResendOTP, ResendOTPReset } from "./otp";
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
@@ -14,8 +15,15 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         if (!isTeacherEmail(email)) {
           throw new ConvexError("This email is not on the teacher allowlist.");
         }
+        // Convex Auth hands these same params to the verify provider, which
+        // stores params.email on the user, so normalize it there too.
+        params.email = email;
         return { email };
       },
+      // A 6-digit code by email verifies the address at sign-up and resets a
+      // forgotten password.
+      verify: ResendOTP,
+      reset: ResendOTPReset,
     }),
   ],
 });

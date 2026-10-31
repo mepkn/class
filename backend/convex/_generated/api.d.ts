@@ -25,6 +25,7 @@ import type * as lib_slides from "../lib/slides.js";
 import type * as lib_teachers from "../lib/teachers.js";
 import type * as links from "../links.js";
 import type * as migrations from "../migrations.js";
+import type * as otp from "../otp.js";
 import type * as polls from "../polls.js";
 import type * as seed from "../seed.js";
 
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   "lib/teachers": typeof lib_teachers;
   links: typeof links;
   migrations: typeof migrations;
+  otp: typeof otp;
   polls: typeof polls;
   seed: typeof seed;
 }>;

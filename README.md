@@ -10,7 +10,8 @@ Live: https://class.pknspace.com
 - **Students** open `/`. They don't log in and there's no navigation. They follow the
   teacher's screen live.
 - **The teacher** opens `/teacher`, signs in with email and password (allowlisted), and
-  runs the Command Center.
+  runs the Command Center. Sign-up asks for a 6-digit code sent by email, and
+  "Forgot password?" resets the password with a code too (also in Class Remote).
 - **Polls** written ahead: inline in a lesson (they start when their slide is shown), in a
   lesson's Polls tab, or in a reusable poll bank. Quiz or opinion polls with 2–6 options.
   Votes are never kept: each class starts from zero.
@@ -71,7 +72,8 @@ so `backend/.env.local` stays the only dev env file. Sign in with the teacher ac
 1. Make sure your email is in the allowlist: `npx convex env set ALLOWED_EMAILS you@school.edu`
    (comma-separate multiple teachers).
 2. Open http://localhost:5173/teacher and choose **"First time? Create the teacher
-   account"**. Enter that email and a password of at least 8 characters.
+   account"**. Enter that email and a password of at least 8 characters, then the 6-digit
+   code. Locally no email is sent: the code is printed in the `npx convex dev` output.
 
 Sign-up is rejected for any email that isn't in `ALLOWED_EMAILS`. If you remove an email
 from the list later, that user sees **Access denied**, and every teacher function throws
@@ -194,6 +196,9 @@ One-time setup:
    npx convex env set --prod SITE_URL https://class.pknspace.com
    npx convex env set --prod ALLOWED_EMAILS you@school.edu
    ```
+   and `RESEND_API_KEY` (sends the sign-up and reset codes from
+   `class <noreply@send.pknspace.com>`): create the Resend key `class-api-key`, copy it,
+   and run `../scripts/set-resend-key.sh class` from the repo root.
 4. Seed production once: `npx convex run --prod seed:default`. Then create the teacher
    account at `/teacher`.
 
@@ -228,6 +233,11 @@ and the `EXPO_TOKEN` repository secret (the token in `mobile/.eas-token`).
 - **Voting.** Each browser gets a `nanoid` token stored in `localStorage`, so new tabs share
   it. The server enforces one vote per `(runId, voterToken)` and rejects votes once results
   are revealed.
+- **Sign-in.** `backend/convex/auth.ts` sets up Convex Auth's Password provider: its
+  `profile()` refuses emails outside `ALLOWED_EMAILS`, and `backend/convex/otp.ts` emails the
+  6-digit codes for sign-up verification and password reset through Resend (without
+  `RESEND_API_KEY` they are only logged). Production env vars: `JWT_PRIVATE_KEY`, `JWKS`,
+  `SITE_URL`, `ALLOWED_EMAILS`, `RESEND_API_KEY`.
 - **Security.** Every teacher query and mutation calls `requireTeacher(ctx)`. It checks that
   the caller is signed in and that their email is in `ALLOWED_EMAILS`. User-facing errors
   are thrown as `ConvexError`, so their messages also reach the client in production.
