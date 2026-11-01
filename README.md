@@ -31,6 +31,10 @@ Live: https://class.pknspace.com
   big Prev / Next), **Polls** (launch, live counts, Reveal, Close / Run again) and **Links**
   (Show, Back to board). It only runs the class: lessons and polls are written on the web.
   The screen stays on while it's open.
+- **Update check** (Class Remote): on launch, and from **Check for updates** at the bottom of
+  Lessons (which also shows the version), the app compares its build with the latest GitHub
+  release, downloads the new APK, opens Android's installer, and deletes the downloaded APK on
+  the next launch.
 
 ## Stack
 
@@ -216,6 +220,13 @@ The preview APK is built on GitHub Actions (`gh workflow run release.yml`) and a
 `https://github.com/mepkn/class/releases/latest/download/class.apk` is the download link. One-time setup: `scripts/eas.sh init` (adds the EAS project id to
 `mobile/app.json`), `scripts/eas.sh env:create --environment preview --name EXPO_PUBLIC_CONVEX_URL --value https://<prod>.convex.cloud --visibility plaintext`,
 and the `EXPO_TOKEN` repository secret (the token in `mobile/.eas-token`).
+
+The workflow builds with `EXPO_PUBLIC_COMMIT` set to the short SHA, the same as the release
+tag; Class Remote (`mobile/src/lib/update.ts`) asks GitHub for the latest release on launch and
+offers a different tag as an update. The APK is downloaded to the app's cache (`update/`) and
+opened with `INSTALL_PACKAGE` (needs `REQUEST_INSTALL_PACKAGES`; Android asks once to allow
+installs from Class Remote). Every launch deletes that folder. Builds without a SHA (local,
+dev) skip the check. The first build with the check has to be installed by hand.
 
 ## How it works
 

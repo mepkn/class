@@ -4,14 +4,16 @@ import { segments } from "@convex/lib/lessonNumber";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useMutation, useQuery } from "convex/react";
 import { router } from "expo-router";
-import { Eraser, EyeOff, Lock, LogOut } from "lucide-react-native";
+import { Eraser, EyeOff, Lock, LogOut, RefreshCw } from "lucide-react-native";
 import { useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, View } from "react-native";
 import { CmpConfirmDialog } from "@/components/cmp/cmp-confirm-dialog";
 import { CmpIcon } from "@/components/cmp/cmp-icon";
 import { CmpText } from "@/components/cmp/cmp-text";
 import { ErrorText } from "@/components/section";
+import { currentCommit } from "@/lib/update";
 import { useAct } from "@/lib/use-act";
+import { runUpdateCheck } from "@/lib/use-update-check";
 
 type Pending = { kind: "lesson"; lesson: LessonSummary } | { kind: "blank" };
 
@@ -81,6 +83,14 @@ export default function LessonsScreen() {
       />
       {/* As on the web: pinned at the bottom, red, with the signed-in email. */}
       <View className="border-t border-border p-3">
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => void runUpdateCheck(true)}
+          className="flex-row items-center gap-2 rounded-md px-3 py-2.5 active:bg-accent">
+          <CmpIcon as={RefreshCw} size={16} className="text-muted-foreground" />
+          <CmpText className="flex-1 text-sm font-medium">Check for updates</CmpText>
+          <CmpText className="text-sm text-muted-foreground">Version {currentCommit}</CmpText>
+        </Pressable>
         <Pressable
           accessibilityRole="button"
           onPress={() => void signOut()}

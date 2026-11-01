@@ -21,7 +21,10 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.pknspace.classremote",
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "REQUEST_INSTALL_PACKAGES"
+      ]
     },
     "plugins": [
       "expo-router",

@@ -17,6 +17,7 @@ import { CmpButton } from "@/components/cmp/cmp-button";
 import { CmpText } from "@/components/cmp/cmp-text";
 import { errorMessage } from "@/lib/errors";
 import { THEME } from "@/lib/theme";
+import { useUpdateCheck } from "@/lib/use-update-check";
 
 function tabIcon(Icon: LucideIcon, dot = false) {
   return function TabIcon({
@@ -50,6 +51,7 @@ function tabIcon(Icon: LucideIcon, dot = false) {
 export default function AppLayout() {
   // The phone stays on for the whole class.
   useKeepAwake();
+  useUpdateCheck();
   const session = useQuery(api.classroom.getActiveSession);
 
   // Opens on Board while a lesson is live, otherwise on Lessons to pick one.
