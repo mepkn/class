@@ -1,6 +1,48 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MarkdownRenderer } from "./MarkdownRenderer";
+import { cleanCopyText } from "@/lib/cleanCopyText";
+
+describe("cleanCopyText", () => {
+  it("strips ++ underline syntax from copied text", () => {
+    const raw = '++You are a strict teacher++. Check my answer: "The Sun goes around the Earth." Point out every mistake.';
+    expect(cleanCopyText(raw)).toBe(
+      'You are a strict teacher. Check my answer: "The Sun goes around the Earth." Point out every mistake.'
+    );
+  });
+
+  it("strips presenter notes (%% lines)", () => {
+    const raw = "%% secret teacher note\nGive me 5 names for our school cricket team.";
+    expect(cleanCopyText(raw)).toBe("Give me 5 names for our school cricket team.");
+  });
+
+  it("strips <u> tags", () => {
+    const raw = "Explain <u>step by step</u>, simply.";
+    expect(cleanCopyText(raw)).toBe("Explain step by step, simply.");
+  });
+});
+
+describe("MarkdownRenderer copy block (```copy)", () => {
+  it("renders a copy card with a Copy button", () => {
+    const md = '```copy\nCheck my answer: "The Sun goes around the Earth."\n```';
+    const html = renderToStaticMarkup(<MarkdownRenderer content={md} />);
+    expect(html).toContain("Copy");
+    expect(html).toContain('Check my answer: &quot;The Sun goes around the Earth.&quot;');
+  });
+
+  it("renders underlined text inside copy card with <ins>", () => {
+    const md = '```copy\n++You are a strict teacher++. Check my answer.\n```';
+    const html = renderToStaticMarkup(<MarkdownRenderer content={md} />);
+    expect(html).toContain('<ins class="md-underline">You are a strict teacher</ins>');
+  });
+
+  it("supports aliases like ```prompt and ```clip", () => {
+    const md = '```prompt\nPlan a birthday party.\n```';
+    const html = renderToStaticMarkup(<MarkdownRenderer content={md} />);
+    expect(html).toContain("Copy");
+    expect(html).toContain("Plan a birthday party.");
+  });
+});
 
 describe("MarkdownRenderer underline syntax", () => {
   it("renders ++text++ as an underlined <ins> element", () => {

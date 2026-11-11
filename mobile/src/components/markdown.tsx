@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Image, StyleSheet, Text } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 import Markdown, { type RenderRules } from "react-native-markdown-display";
 import { THEME } from "@/lib/theme";
 
@@ -52,6 +52,22 @@ function SlideImage({ uri, alt }: { uri: string; alt: string }) {
 
 const rules: RenderRules = {
   image: (node) => <SlideImage key={node.key} uri={String(node.attributes.src)} alt={String(node.attributes.alt ?? "")} />,
+  fence: (node, _children, _parents, styles) => {
+    const lang = String((node as { sourceInfo?: string }).sourceInfo ?? "").trim().toLowerCase();
+    if (lang === "copy" || lang === "clip" || lang === "text" || lang === "prompt") {
+      const text = String(node.content ?? "").trim();
+      return (
+        <View key={node.key} style={{ marginVertical: 8, padding: 12, borderRadius: 8, borderWidth: 1, borderColor: THEME.border, backgroundColor: THEME.code }}>
+          <Text style={{ color: THEME.chalk, fontSize: 15, lineHeight: 22 }}>{text}</Text>
+        </View>
+      );
+    }
+    return (
+      <View key={node.key} style={styles.fence}>
+        <Text style={styles.fence}>{node.content}</Text>
+      </View>
+    );
+  },
   text: (node) => {
     const raw = String(node.content ?? "");
     if (!raw.includes("++")) return <Text key={node.key}>{raw}</Text>;

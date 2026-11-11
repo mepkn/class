@@ -1,4 +1,4 @@
-import { memo, useContext, useRef, useState, type ComponentProps } from "react";
+import { createContext, memo, useContext, useRef, useState, type ComponentProps } from "react";
 import ReactMarkdown, { type Components, type ExtraProps } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { PollSlotContext } from "@/lib/pollSlot";
 import { LinkOpenContext } from "@/lib/linkOpen";
 import { normalizeLink } from "@convex/lib/links";
+import { cleanCopyText } from "@/lib/cleanCopyText";
 
 interface HastNode {
   type: string;
@@ -38,6 +39,36 @@ function rehypePollSlots() {
         const classes = code?.properties?.className;
         if (code && Array.isArray(classes) && classes.includes("language-poll")) {
           child.properties = { ...child.properties, dataPoll: index++, dataPollSource: textOf(code) };
+          code.properties = { ...code.properties, className: [] };
+        } else {
+          walk(child);
+        }
+      }
+    };
+    walk(tree);
+  };
+}
+
+const COPY_LANGS = new Set(["copy", "clip", "text", "prompt"]);
+
+/**
+ * Marks each ```copy block (and aliases like ```clip, ```prompt) with `dataCopyBlock`
+ * and `dataCopySource`, dropping the language class so highlight.js leaves it alone.
+ */
+function rehypeCopyBlocks() {
+  return (tree: HastNode) => {
+    const walk = (node: HastNode) => {
+      for (const child of node.children ?? []) {
+        const code = child.tagName === "pre" ? child.children?.find((c) => c.tagName === "code") : undefined;
+        const classes = code?.properties?.className;
+        const list = Array.isArray(classes) ? classes.map(String) : [];
+        const isCopy = list.some((c) => {
+          if (!c.startsWith("language-")) return false;
+          const lang = c.slice("language-".length).toLowerCase();
+          return COPY_LANGS.has(lang);
+        });
+        if (code && isCopy) {
+          child.properties = { ...child.properties, dataCopyBlock: true, dataCopySource: textOf(code) };
           code.properties = { ...code.properties, className: [] };
         } else {
           walk(child);
@@ -142,10 +173,11 @@ function rehypeUnderline() {
 }
 
 const remarkPlugins = [remarkGfm, remarkMath];
-// Order matters: polls are taken out first, then KaTeX renders math nodes before
+// Order matters: polls and copy blocks are taken out first, then KaTeX renders math nodes before
 // highlight.js sees code nodes, and underline parses inline delimiters.
 const rehypePlugins: ComponentProps<typeof ReactMarkdown>["rehypePlugins"] = [
   rehypePollSlots,
+  rehypeCopyBlocks,
   [rehypeKatex, { throwOnError: false, strict: false }],
   [rehypeHighlight, { detect: false }],
   rehypeUnderline,
@@ -192,13 +224,61 @@ function PollPreview({ source }: { source: string }) {
   );
 }
 
+const InCopyCardContext = createContext(false);
+
+/**
+ * A copyable card for prompts, snippets, or any text students need to copy.
+ * Renders formatted Markdown (including curly animating underlines) while copying
+ * clean plain text with delimiters stripped.
+ */
+function CopyCard({ source }: { source: string }) {
+  const [copied, setCopied] = useState(false);
+  const clean = cleanCopyText(source);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(clean);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard blocked (e.g. insecure context) — ignore */
+    }
+  };
+
+  return (
+    <div className="not-prose group relative my-5 rounded-xl border border-white/15 bg-black/30 p-4 sm:p-5 shadow-sm transition-all hover:border-white/25">
+      <div className="absolute right-3 top-3">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={copy}
+          className="h-7 gap-1.5 px-2.5 text-xs font-medium hover:bg-primary/20 hover:text-primary transition-colors cursor-pointer"
+          aria-label="Copy text"
+        >
+          {copied ? <Check className="size-3.5 text-success" /> : <Copy className="size-3.5" />}
+          {copied ? "Copied!" : "Copy"}
+        </Button>
+      </div>
+      <div className="pr-16 text-foreground leading-relaxed text-base sm:text-lg select-text">
+        <InCopyCardContext.Provider value={true}>
+          <MarkdownRenderer content={source.trim()} />
+        </InCopyCardContext.Provider>
+      </div>
+    </div>
+  );
+}
+
 function CodeBlock(props: ComponentProps<"pre"> & ExtraProps) {
   const slot = useContext(PollSlotContext);
+  const inCopyCard = useContext(InCopyCardContext);
   const index = props.node?.properties?.dataPoll;
   if (typeof index === "number") {
     const custom = slot?.(index);
     if (custom !== undefined) return <>{custom}</>;
     return <PollPreview source={String(props.node?.properties?.dataPollSource ?? "")} />;
+  }
+  if (props.node?.properties?.dataCopyBlock && !inCopyCard) {
+    return <CopyCard source={String(props.node?.properties?.dataCopySource ?? "")} />;
   }
   return <CodeView {...props} />;
 }

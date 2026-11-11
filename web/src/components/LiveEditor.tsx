@@ -7,6 +7,7 @@ import MDEditor, {
 import {
   BarChart3,
   CircleDot,
+  ClipboardCopy,
   Code2,
   Link2,
   Loader2,
@@ -64,6 +65,12 @@ function insertCommand(
 }
 
 const quickInsert: ICommand[] = [
+  insertCommand(
+    "copyblock",
+    "Insert copyable text card (```copy)",
+    <ClipboardCopy className="size-3.5" />,
+    (sel) => `\n\`\`\`copy\n${sel || "Text for students to copy"}\n\`\`\`\n`,
+  ),
   insertCommand(
     "python",
     "Insert Python code block",
