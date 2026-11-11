@@ -15,6 +15,7 @@ import {
   Save,
   Sigma,
   StickyNote,
+  Underline,
 } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
@@ -107,11 +108,19 @@ const quickInsert: ICommand[] = [
   ),
 ];
 
+const underlineCommand = insertCommand(
+  "underline",
+  "Insert underline (++text++)",
+  <Underline className="size-3.5" />,
+  (sel) => `++${sel || "underlined text"}++`,
+);
+
 const toolbar: ICommand[] = [
   ...quickInsert,
   commands.divider,
   commands.bold,
   commands.italic,
+  underlineCommand,
   commands.title2,
   commands.quote,
   commands.code,

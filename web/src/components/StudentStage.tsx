@@ -35,9 +35,10 @@ export function StudentStage({ readOnly = false, className }: Props) {
   return (
     <div
       className={cn(
-        "relative h-full w-full overflow-hidden bg-board text-foreground transition-colors duration-500",
+        "student-board relative h-full w-full overflow-hidden bg-board text-foreground transition-colors duration-500",
         className,
       )}
+      data-student-board=""
       // Teacher-chosen board color; also used by the duster wipe's old-board layer.
       style={{ "--board": boardColorValue(session?.boardColor) } as CSSProperties}
     >
@@ -225,6 +226,7 @@ function LessonCanvas({
               >
                 <MarkdownRenderer
                   content={block.content}
+                  underlineStyle="curly"
                   className="prose-lg sm:prose-xl prose-p:leading-relaxed"
                 />
               </PollSlotContext.Provider>

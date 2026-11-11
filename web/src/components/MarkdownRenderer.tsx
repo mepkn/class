@@ -48,13 +48,107 @@ function rehypePollSlots() {
   };
 }
 
+const UNDERLINE_RE = /(?:\+\+([^\s+](?:[^\n+]*?[^\s+])?)\+\+|<u>([\s\S]*?)<\/u>)/;
+
+/**
+ * Transforms `++text++` (and `<u>text</u>`) into `<ins className="md-underline">` nodes.
+ * Code blocks and inline code are left alone.
+ */
+function rehypeUnderline() {
+  return (tree: HastNode) => {
+    const walk = (node: HastNode) => {
+      if (!node.children || node.tagName === "pre" || node.tagName === "code") return;
+
+      for (const child of node.children) {
+        if (child.type === "element") walk(child);
+      }
+
+      const newChildren: HastNode[] = [];
+      for (let i = 0; i < node.children.length; i++) {
+        const child = node.children[i];
+        if (child.type === "text" && child.value && (child.value.includes("++") || child.value.includes("<u>"))) {
+          let str = child.value;
+          let match: RegExpExecArray | null;
+          while ((match = UNDERLINE_RE.exec(str)) !== null) {
+            const before = str.slice(0, match.index);
+            const content = match[1] ?? match[2] ?? "";
+            str = str.slice(match.index + match[0].length);
+            if (before) newChildren.push({ type: "text", value: before });
+            newChildren.push({
+              type: "element",
+              tagName: "ins",
+              properties: { className: ["md-underline"] },
+              children: [{ type: "text", value: content }],
+            });
+          }
+          if (str) newChildren.push({ type: "text", value: str });
+        } else {
+          newChildren.push(child);
+        }
+      }
+
+      // Check if ++ wraps sibling elements (e.g. ++**bold**++)
+      let i = 0;
+      const finalChildren: HastNode[] = [];
+      while (i < newChildren.length) {
+        const curr = newChildren[i];
+        if (curr.type === "text" && curr.value && curr.value.endsWith("++")) {
+          let j = i + 1;
+          let found = -1;
+          while (j < newChildren.length) {
+            const nextChild = newChildren[j];
+            if (nextChild && nextChild.type === "text" && nextChild.value?.startsWith("++")) {
+              found = j;
+              break;
+            }
+            j++;
+          }
+          if (found !== -1) {
+            const before = curr.value.slice(0, -2);
+            if (before) finalChildren.push({ type: "text", value: before });
+
+            const wrappedChildren: HastNode[] = [];
+            for (let k = i + 1; k < found; k++) {
+              const childToWrap = newChildren[k];
+              if (childToWrap) wrappedChildren.push(childToWrap);
+            }
+            finalChildren.push({
+              type: "element",
+              tagName: "ins",
+              properties: { className: ["md-underline"] },
+              children: wrappedChildren,
+            });
+
+            const closingNode = newChildren[found];
+            const after = (closingNode?.value ?? "").slice(2);
+            if (after && closingNode) {
+              closingNode.value = after;
+              i = found;
+              continue;
+            } else {
+              i = found + 1;
+              continue;
+            }
+          }
+        }
+        finalChildren.push(curr);
+        i++;
+      }
+
+      node.children = finalChildren;
+    };
+    walk(tree);
+  };
+}
+
 const remarkPlugins = [remarkGfm, remarkMath];
 // Order matters: polls are taken out first, then KaTeX renders math nodes before
-// highlight.js sees code nodes.
+// highlight.js sees code nodes, and underline parses inline delimiters.
 const rehypePlugins: ComponentProps<typeof ReactMarkdown>["rehypePlugins"] = [
   rehypePollSlots,
   [rehypeKatex, { throwOnError: false, strict: false }],
   [rehypeHighlight, { detect: false }],
+  rehypeUnderline,
 ];
 
 function languageOf(node: ExtraProps["node"]): string | null {
@@ -176,6 +270,9 @@ const components: Components = {
       <table {...props} />
     </div>
   ),
+  ins: ({ node: _node, className, ...props }) => (
+    <ins className={className ?? "md-underline"} {...props} />
+  ),
 };
 
 function RawFallback({ content, error }: { content: string; error: Error }) {
@@ -195,6 +292,11 @@ function RawFallback({ content, error }: { content: string; error: Error }) {
 interface MarkdownRendererProps {
   content: string;
   className?: string;
+  /**
+   * "curly" displays the underline as a wavy animating underline (for students and monitor preview).
+   * "standard" (default) displays a crisp, solid underline (for the editor preview).
+   */
+  underlineStyle?: "curly" | "standard";
 }
 
 /**
@@ -204,11 +306,13 @@ interface MarkdownRendererProps {
 export const MarkdownRenderer = memo(function MarkdownRenderer({
   content,
   className,
+  underlineStyle = "standard",
 }: MarkdownRendererProps) {
   return (
     <div
       className={cn(
         "md-body prose prose-invert max-w-none prose-headings:font-semibold prose-code:before:content-none prose-code:after:content-none prose-blockquote:border-primary prose-blockquote:not-italic prose-a:text-primary",
+        underlineStyle === "curly" && "md-underline-curly",
         className,
       )}
     >

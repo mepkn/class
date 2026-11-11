@@ -153,7 +153,10 @@
   .animate-fade-in,
   .animate-poll-in,
   .animate-poll-pop,
-  .animate-poll-nudge {
+  .animate-poll-nudge,
+  .student-board .md-underline,
+  [data-student-board] .md-underline,
+  .md-underline-curly .md-underline {
     animation: none;
   }
 }
@@ -170,6 +173,36 @@
 .md-body pre code.hljs {
   background: transparent;
   padding: 0;
+}
+
+/* Underline: default crisp underline in editor preview */
+.md-underline {
+  text-decoration: underline;
+  text-decoration-color: var(--primary);
+  text-underline-offset: 4px;
+  text-decoration-thickness: 2px;
+}
+
+/* Underline: curly animating chalk wave for students and monitor preview */
+.student-board .md-underline,
+[data-student-board] .md-underline,
+.md-underline-curly .md-underline {
+  text-decoration: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 6'%3E%3Cpath d='M0 3 Q 4 0, 8 3 T 16 3' fill='none' stroke='%2373ecbc' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-position: 0 calc(100% - 1px);
+  background-size: 16px 6px;
+  padding-bottom: 5px;
+  animation: curly-underline-flow 1.4s linear infinite;
+}
+
+@keyframes curly-underline-flow {
+  0% {
+    background-position-x: 0;
+  }
+  100% {
+    background-position-x: 16px;
+  }
 }
 
 /* Keep the md editor in the app's dark palette */

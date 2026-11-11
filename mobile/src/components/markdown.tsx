@@ -52,6 +52,25 @@ function SlideImage({ uri, alt }: { uri: string; alt: string }) {
 
 const rules: RenderRules = {
   image: (node) => <SlideImage key={node.key} uri={String(node.attributes.src)} alt={String(node.attributes.alt ?? "")} />,
+  text: (node) => {
+    const raw = String(node.content ?? "");
+    if (!raw.includes("++")) return <Text key={node.key}>{raw}</Text>;
+    const parts = raw.split(/(\+\+[^\s+](?:[^\n+]*?[^\s+])?\+\+)/g);
+    return (
+      <Text key={node.key}>
+        {parts.map((part, i) => {
+          if (part.startsWith("++") && part.endsWith("++") && part.length >= 4) {
+            return (
+              <Text key={i} style={{ textDecorationLine: "underline", color: THEME.primary }}>
+                {part.slice(2, -2)}
+              </Text>
+            );
+          }
+          return part;
+        })}
+      </Text>
+    );
+  },
 };
 
 /** Lesson Markdown, read-only. `onBoard` uses the board's chalk colours. */

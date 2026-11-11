@@ -83,6 +83,7 @@ export function StudentPollView({ poll, readOnly = false, inline = false }: Prop
       <div className={cn("space-y-2", !inline && "text-center")}>
         <MarkdownRenderer
           content={poll.question}
+          underlineStyle="curly"
           className={cn(
             "text-balance font-semibold leading-tight prose-p:my-0",
             inline ? "prose-lg sm:prose-xl" : "text-2xl sm:text-4xl prose-p:leading-tight",
