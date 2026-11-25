@@ -225,16 +225,18 @@ export function LessonDrawer({ lessons, liveLessonId, editingLessonId, onOpen, o
             </AlertDialog>
           )}
           {!isLive && (
-            <Button
-              size="sm"
-              variant="default"
-              className="ml-auto h-7"
-              disabled={lesson.isLocked}
-              title={lesson.isLocked ? "Unlock the lesson to push it" : "Show this lesson to every student"}
-              onClick={() => onPush(lesson)}
-            >
-              <Radio /> Push to Room
-            </Button>
+            <Hint label={lesson.isLocked ? "Unlock the lesson to push it" : "Push to Room: show this lesson to every student"}>
+              <Button
+                size="icon"
+                variant="default"
+                className="ml-auto size-7"
+                disabled={lesson.isLocked}
+                aria-label="Push to Room"
+                onClick={() => onPush(lesson)}
+              >
+                <Radio />
+              </Button>
+            </Hint>
           )}
         </div>
       </li>
