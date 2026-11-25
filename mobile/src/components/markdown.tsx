@@ -68,12 +68,15 @@ const rules: RenderRules = {
       </View>
     );
   },
-  text: (node) => {
+  // Must apply `inheritedStyles` (the body colour etc.): without it Android falls back to
+  // the default black text on the dark board.
+  text: (node, _children, _parents, styles, inheritedStyles = {}) => {
     const raw = String(node.content ?? "");
-    if (!raw.includes("++")) return <Text key={node.key}>{raw}</Text>;
+    const style = [inheritedStyles, styles.text];
+    if (!raw.includes("++")) return <Text key={node.key} style={style}>{raw}</Text>;
     const parts = raw.split(/(\+\+[^\s+](?:[^\n+]*?[^\s+])?\+\+)/g);
     return (
-      <Text key={node.key}>
+      <Text key={node.key} style={style}>
         {parts.map((part, i) => {
           if (part.startsWith("++") && part.endsWith("++") && part.length >= 4) {
             return (
